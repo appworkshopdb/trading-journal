@@ -242,13 +242,11 @@ function renderMenus() {
     children.push(item('Auswertungen', !onCalendar && state.analysisScope === mk, () => actions.navigate({ page: 'analysis', scope: mk }), 'menu-item sub'));
   }
   children.push(el('div', 'menu-sep'));
-  children.push(item('Auswertungen', !onCalendar && state.analysisScope == null, () => actions.navigate({ page: 'analysis', scope: null })));
-  children.push(el('div', 'menu-sep'));
   const theme = el('div', 'menu-theme');
-  theme.append(el('span', 'menu-theme-label', 'Farbmodus'));
   const seg = el('div', 'seg');
   for (const [id, label] of [['light', 'Hell'], ['dark', 'Dunkel']]) {
     const b = el('button', state.theme === id ? 'active' : '', label, { onclick: () => actions.setTheme(id) });
+    b.title = `Farbmodus: ${label}`;
     b.setAttribute('aria-pressed', String(state.theme === id));
     seg.append(b);
   }
