@@ -22,19 +22,6 @@
     <div class="brand">Trading&nbsp;Journal</div>
     <span id="marketPill" class="market-pill"></span>
 
-    <nav class="period-nav" aria-label="Zeitraum">
-      <button id="btnPrev" class="icon-btn" title="Zurück" aria-label="Zurück">&#8249;</button>
-      <button id="btnPeriod" class="period-label" title="Zum heutigen Monat"></button>
-      <select id="yearSelect" class="year-select" aria-label="Jahr"></select>
-      <button id="btnNext" class="icon-btn" title="Vor" aria-label="Vor">&#8250;</button>
-      <button id="btnToday" class="text-btn">Heute</button>
-    </nav>
-
-    <div class="view-toggle" role="tablist" aria-label="Ansicht">
-      <button data-view="month" role="tab" class="active">Monat</button>
-      <button data-view="year" role="tab">Jahr</button>
-    </div>
-
     <div class="status" id="status">
       <span id="saveStatus"></span>
       <div class="profile-wrap">
@@ -48,7 +35,23 @@
   <main class="analysis-page hidden" id="analysisPage" aria-label="Auswertungen"></main>
 
   <main class="workspace" id="workspace">
-    <section class="pane pane-calendar" id="calendarPane" aria-label="Kalender"></section>
+    <section class="pane pane-calendar" aria-label="Kalender">
+    <div class="calbar">
+      <nav class="period-nav" aria-label="Zeitraum">
+        <button id="btnPrev" class="icon-btn" title="Zurück" aria-label="Zurück">&#8249;</button>
+        <button id="btnPeriod" class="period-label" title="Zum heutigen Monat"></button>
+        <select id="yearSelect" class="year-select" aria-label="Jahr"></select>
+        <button id="btnNext" class="icon-btn" title="Vor" aria-label="Vor">&#8250;</button>
+        <button id="btnToday" class="text-btn">Heute</button>
+      </nav>
+
+      <div class="view-toggle" role="tablist" aria-label="Ansicht">
+        <button data-view="month" role="tab" class="active">Monat</button>
+        <button data-view="year" role="tab">Jahr</button>
+      </div>
+    </div>
+    <div class="calendar-body" id="calendarPane"></div>
+    </section>
     <div class="splitter" id="splitter" role="separator" aria-orientation="vertical" title="Ziehen zum Anpassen · Doppelklick = 50/50"></div>
     <section class="pane pane-side" id="sidePane" aria-label="Details">
       <nav class="side-tabs" id="sideTabs" role="tablist">
