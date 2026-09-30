@@ -1,7 +1,7 @@
 // Kalender: Monatsansicht (Wochenzeilen × 7 Tage) und Jahresansicht (4 × 3 Monate).
 // Reines Rendering – Datenzugriff und Navigation laufen über `actions` (siehe app.js).
 
-import { h, MONTHS, MONTHS_SHORT, WEEKDAYS, monthGrid, monthPrefix, fmtMoney, fmtCompact, signClass, periodStats, todayISO, escapeHtml, noteColor } from './utils.js';
+import { h, MONTHS, MONTHS_SHORT, WEEKDAYS, monthGrid, monthPrefix, fmtMoney, fmtCompact, signClass, periodStats, todayISO, escapeHtml, noteColor, dayEntriesOfMonth, monthTotal } from './utils.js';
 import { CONFIG } from '../config.js';
 
 export function renderCalendar(root, state, actions) {
@@ -10,8 +10,7 @@ export function renderCalendar(root, state, actions) {
 
 /** Alle Tageseinträge eines Monats aus dem Cache */
 function entriesOfMonth(state, y, m) {
-  const prefix = monthPrefix(y, m);
-  return Object.values(state.days).filter((d) => d.date.startsWith(prefix));
+  return dayEntriesOfMonth(state.days, monthPrefix(y, m));
 }
 
 function statTile(label, value, cls = '') {
@@ -75,30 +74,46 @@ function yearView(state, actions) {
   const today = todayISO();
   const monthSums = [];
   let yearEntries = [];
+  let adjSum = 0, adjAny = false; // Gewinn/Verlust, die direkt an Monatseinträgen stehen
 
   const months = Array.from({ length: 12 }, (_, m) => {
+    const key = monthPrefix(y, m);
     const entries = entriesOfMonth(state, y, m);
     yearEntries = yearEntries.concat(entries);
-    const st = periodStats(entries);
-    monthSums.push(st.traded ? st.sum : 0);
-    const byDate = Object.fromEntries(entries.map((e) => [e.date, e]));
+    const e = state.days[key]; // eigener Eintrag des Monats (Notiz, Farbe, Bilder, Auswertung, optional Gewinn/Verlust)
+    if (e?.pnl != null) { adjSum += e.pnl; adjAny = true; }
+    const total = monthTotal(state.days, key);
+    monthSums.push(total ?? 0);
+    const byDate = Object.fromEntries(entries.map((d) => [d.date, d]));
+    const cls = ['mini-month', key === state.selectedMonth && 'selected', total != null && (total > 0 ? 'win' : total < 0 ? 'loss' : 'flat')].filter(Boolean).join(' ');
 
-    return h('button', { class: 'mini-month', onClick: () => actions.openMonth(y, m) },
+    // Wie die Tageszelle: <div> mit transparentem Button (Popup) + "Öffnen" (Detailbereich)
+    return h('div', { class: cls, dataset: { month: key } },
+      h('button', { class: 'day-hit', 'aria-label': `${MONTHS[m]} ${y} bearbeiten`, onClick: () => actions.openPopup(key) }),
       h('div', { class: 'mini-head' },
         h('span', { class: 'mini-title', title: MONTHS[m] }, MONTHS_SHORT[m]),
-        h('span', { class: `mini-sum ${signClass(st.sum)}`, title: fmtMoney(st.sum, CONFIG.CURRENCY) }, st.traded ? fmtCompact(st.sum) : ''),
+        e?.images?.length ? h('i', { class: 'mark mark-img', title: `${e.images.length} Bild(er)` }, e.images.length) : null,
+        h('span', { class: `mini-sum ${signClass(total)}`, title: total != null ? fmtMoney(total, CONFIG.CURRENCY) : null }, total != null ? fmtCompact(total) : ''),
       ),
+      e?.note?.trim() && h('div', { class: 'day-note', style: `--note:${noteColor(e.note_color).hex}` },
+        h('span', { class: 'day-note-text' }, e.note)),
       h('div', { class: 'mini-grid' }, monthGrid(y, m).flat().map((c) => {
-        const e = byDate[c.iso];
-        const cls = ['mini-day', !c.inMonth && 'outside', c.iso === today && 'today',
-          e?.pnl != null && (e.pnl > 0 ? 'win' : e.pnl < 0 ? 'loss' : 'flat')].filter(Boolean).join(' ');
-        return h('span', { class: cls, title: c.inMonth ? `${c.iso}${e?.pnl != null ? ' · ' + fmtMoney(e.pnl, CONFIG.CURRENCY) : ''}` : null });
+        const d = byDate[c.iso];
+        const dcls = ['mini-day', !c.inMonth && 'outside', c.iso === today && 'today',
+          d?.pnl != null && (d.pnl > 0 ? 'win' : d.pnl < 0 ? 'loss' : 'flat')].filter(Boolean).join(' ');
+        return h('span', { class: dcls, title: c.inMonth ? `${c.iso}${d?.pnl != null ? ' · ' + fmtMoney(d.pnl, CONFIG.CURRENCY) : ''}` : null });
       })),
+      h('div', { class: 'day-foot' },
+        h('button', { class: 'day-open', title: 'Bilder und Auswertung öffnen', onClick: () => actions.openDetail(key) }, 'Öffnen')),
     );
   });
 
+  const yst = periodStats(yearEntries);
+  yst.sum += adjSum;
+  yst.traded = yst.traded || (adjAny ? 1 : 0);
+
   return h('div', { class: 'year-view' },
-    statsBar(`Jahr ${y}`, periodStats(yearEntries)),
+    statsBar(`Jahr ${y}`, yst),
     barChart(monthSums),
     h('div', { class: 'year-grid' }, months),
   );

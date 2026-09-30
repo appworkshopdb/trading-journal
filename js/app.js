@@ -6,7 +6,7 @@ import { renderCalendar } from './calendar.js';
 import { renderSidebar } from './sidebar.js';
 import { renderDayModal } from './daymodal.js';
 import { initSplitter } from './splitter.js';
-import { MONTHS, todayISO, uid } from './utils.js';
+import { MONTHS, todayISO, uid, isMonthKey } from './utils.js';
 
 const $ = (id) => document.getElementById(id);
 let db; // Daten-Adapter (siehe js/data/index.js)
@@ -55,7 +55,7 @@ const isEmptyDay = (d) => d.pnl == null && !(d.note || '').trim() && !(d.tags ||
 const actions = {
   // Navigation
   // Tag antippen -> Popup (Gewinn/Verlust/Notiz/Farbe); "Öffnen" in der Zelle -> Detailbereich rechts
-  openPopup(iso) { setState({ selectedDate: iso, popupDate: iso }, ['calendar', 'modal']); },
+  openPopup(iso) { setState(isMonthKey(iso) ? { popupDate: iso } : { selectedDate: iso, popupDate: iso }, ['calendar', 'modal']); },
   closePopup() { setState({ popupDate: null }, ['modal']); },
   async savePopup(iso, patch) { actions.closePopup(); await actions.updateDay(iso, patch); },
   async clearPopup(iso) { actions.closePopup(); await actions.clearDay(iso); },
@@ -67,11 +67,11 @@ const actions = {
     actions.openDetail(iso);
     await saving;
   },
-  openDetail(iso) { setState({ selectedDate: iso, detailDate: iso, popupDate: null }); },
+  openDetail(iso) { setState(isMonthKey(iso) ? { detailDate: iso, popupDate: null } : { selectedDate: iso, detailDate: iso, popupDate: null }); },
   closeDetail() { setState({ detailDate: null }); },
   refreshSidebar(focusField = null) { setState({ focusField }, ['sidebar']); },
   openMonth(y, m) { setState({ view: 'month', year: y, month: m }); },
-  async setView(view) { setState({ view }); },
+  async setView(view) { setState({ view, detailDate: null, popupDate: null }); },
   async setYear(year) { await ensureYear(year); setState({ year }); },
   async step(dir) {
     if (state.view === 'year') return actions.setYear(state.year + dir);

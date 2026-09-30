@@ -93,6 +93,22 @@ export function debounce(fn, ms) {
   return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); };
 }
 
+/** Schlüssel eines Monatseintrags: 'YYYY-MM' (Tageseinträge: 'YYYY-MM-DD') */
+export const isMonthKey = (key) => String(key).length === 7;
+export function periodTitle(key, opts) {
+  if (isMonthKey(key)) { const [y, m] = key.split('-').map(Number); return `${MONTHS[m - 1]} ${y}`; }
+  return fromISO(key).toLocaleDateString('de-DE', opts || { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+}
+/** Tageseinträge eines Monats ('YYYY-MM') aus dem Cache (ohne den Monatseintrag selbst) */
+export const dayEntriesOfMonth = (days, key) => Object.values(days).filter((d) => d.date.length === 10 && d.date.startsWith(key));
+/** Monatsergebnis = Summe der Tage + optionaler Gewinn/Verlust des Monatseintrags; null, wenn nichts eingetragen */
+export function monthTotal(days, key) {
+  const st = periodStats(dayEntriesOfMonth(days, key));
+  const adj = days[key]?.pnl;
+  if (!st.traded && adj == null) return null;
+  return st.sum + (adj || 0);
+}
+
 /** Statistik über eine Liste von Tageseinträgen */
 export function periodStats(entries) {
   let sum = 0, wins = 0, losses = 0, flat = 0;

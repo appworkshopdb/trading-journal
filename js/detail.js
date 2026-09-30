@@ -2,7 +2,7 @@
 // oben die Screenshots (3 pro Zeile), darunter die "Auswertung des Tages" als frei anlegbare Felder in 2 Spalten.
 // Texteingaben speichern entprellt, ohne die Seitenleiste neu zu rendern (sonst verliert das Feld den Fokus).
 
-import { h, fromISO, fmtMoney, signClass, uid } from './utils.js';
+import { h, periodTitle, monthTotal, isMonthKey, fmtMoney, signClass, uid } from './utils.js';
 import { CONFIG } from '../config.js';
 
 const imageUrlCache = new Map(); // path -> URL (Supabase: signierte URL, 1h gültig)
@@ -11,7 +11,8 @@ export function detailPanel(state, actions) {
   const iso = state.detailDate;
   const entry = state.days[iso] || { date: iso, pnl: null, note: '', tags: [], images: [], fields: [] };
   const fields = entry.fields || [];
-  const title = fromISO(iso).toLocaleDateString('de-DE', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' });
+  const title = periodTitle(iso, { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' });
+  const pnl = isMonthKey(iso) ? monthTotal(state.days, iso) : entry.pnl; // Monat: Summe der Tage (+ eigener Anteil)
 
   // Änderungen sammeln und gebündelt entprellt speichern
   let pending = {};
@@ -55,7 +56,7 @@ export function detailPanel(state, actions) {
       h('button', { class: 'text-btn', onClick: () => { flushNow(); actions.closeDetail(); } }, '‹ Zurück'),
       h('div', { class: 'spacer' }),
       h('span', { class: 'detail-date' }, title),
-      entry.pnl != null && h('span', { class: `detail-pnl ${signClass(entry.pnl)}` }, fmtMoney(entry.pnl, CONFIG.CURRENCY))),
+      pnl != null && h('span', { class: `detail-pnl ${signClass(pnl)}` }, fmtMoney(pnl, CONFIG.CURRENCY))),
 
     h('div', { class: 'field' },
       h('div', { class: 'field-head' },
@@ -65,7 +66,7 @@ export function detailPanel(state, actions) {
       imageGrid(entry, iso, actions, saveDebounced)),
 
     h('div', { class: 'detail-fields' },
-      h('div', { class: 'field-head' }, h('span', {}, 'Auswertung des Tages')),
+      h('div', { class: 'field-head' }, h('span', {}, isMonthKey(iso) ? 'Auswertung des Monats' : 'Auswertung des Tages')),
       fields.length
         ? h('div', { class: 'field-grid' }, fields.map(fieldRow))
         : h('p', { class: 'muted small' }, 'Noch keine Felder – z. B. „Setup nach Plan“ oder „Anzahl Trades“.'),

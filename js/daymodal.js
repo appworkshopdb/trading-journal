@@ -1,7 +1,7 @@
 // Popup zum Antippen eines Kalendertags: Gewinn, Verlust, Notiz, Notizfarbe.
 // Wird nur neu gebaut, wenn sich der geöffnete Tag ändert – so gehen Eingaben bei Hintergrund-Renderings nicht verloren.
 
-import { h, fromISO, NOTE_COLORS, noteColor } from './utils.js';
+import { h, periodTitle, isMonthKey, monthTotal, fmtMoney, NOTE_COLORS, noteColor } from './utils.js';
 import { CONFIG } from '../config.js';
 
 let shownFor = null;
@@ -29,7 +29,9 @@ export function renderDayModal(root, state, actions) {
   shownFor = iso;
 
   const entry = state.days[iso];
-  const title = fromISO(iso).toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  const title = periodTitle(iso);
+  const isMonth = isMonthKey(iso);
+  const sumOfDays = isMonth ? monthTotal(Object.fromEntries(Object.entries(state.days).filter(([k]) => k !== iso)), iso) : null;
 
   // Bestehendes Ergebnis auf Gewinn-/Verlustfeld verteilen
   const pnl = entry?.pnl ?? null;
@@ -38,7 +40,7 @@ export function renderDayModal(root, state, actions) {
 
   const gain = h('input', { type: 'text', inputmode: 'decimal', class: 'pnl-gain', placeholder: '0,00', value: gainVal, 'aria-label': `Gewinn (${CONFIG.CURRENCY})` });
   const loss = h('input', { type: 'text', inputmode: 'decimal', class: 'pnl-loss', placeholder: '0,00', value: lossVal, 'aria-label': `Verlust (${CONFIG.CURRENCY})` });
-  const note = h('textarea', { class: 'note-area', rows: 4, placeholder: 'Kurze Notiz zum Tag …' });
+  const note = h('textarea', { class: 'note-area', rows: 4, placeholder: isMonth ? 'Kurze Notiz zum Monat …' : 'Kurze Notiz zum Tag …' });
   note.value = entry?.note || '';
 
   // Eigene Dropdown-Liste, damit jede Farbe schon in der Liste sichtbar ist (ein <select> kann das nicht überall)
@@ -89,6 +91,8 @@ export function renderDayModal(root, state, actions) {
     h('div', { class: 'modal-head' },
       h('h2', {}, title),
       h('button', { type: 'button', class: 'text-btn', 'aria-label': 'Schließen', onClick: () => actions.closePopup() }, '×')),
+    isMonth && h('p', { class: 'muted small modal-hint' },
+      `Summe der Tage: ${sumOfDays != null ? fmtMoney(sumOfDays, CONFIG.CURRENCY) : '–'}. Gewinn/Verlust hier werden zusätzlich dazugerechnet (optional).`),
     h('div', { class: 'modal-pnl' },
       h('label', { class: 'field' }, h('span', {}, `Gewinn (${CONFIG.CURRENCY})`), gain),
       h('label', { class: 'field' }, h('span', {}, `Verlust (${CONFIG.CURRENCY})`), loss)),
@@ -98,7 +102,7 @@ export function renderDayModal(root, state, actions) {
     h('button', { type: 'button', class: 'modal-open', onClick: () => actions.savePopupAndOpen(iso, collect()) }, 'Öffnen · Bilder & Auswertung'),
     h('div', { class: 'modal-actions' },
       entry && h('button', { type: 'button', class: 'text-btn danger',
-        onClick: () => { if (confirm('Alle Einträge dieses Tages löschen?')) actions.clearPopup(iso); } }, 'Tag leeren'),
+        onClick: () => { if (confirm(isMonth ? 'Alle Einträge dieses Monats (Notiz, Bilder, Auswertung) löschen? Die Tage bleiben erhalten.' : 'Alle Einträge dieses Tages löschen?')) actions.clearPopup(iso); } }, 'Tag leeren'),
       h('div', { class: 'spacer' }),
       h('button', { type: 'button', class: 'text-btn', onClick: () => actions.closePopup() }, 'Abbrechen'),
       h('button', { type: 'submit', class: 'primary' }, 'Speichern')),
