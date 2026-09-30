@@ -3,9 +3,10 @@
 // Die Bibliothek kommt per ESM-CDN – kein Build-Schritt nötig.
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { uid } from '../utils.js';
+import { uid, isMonthKey } from '../utils.js';
 
 const DAY_COLS = 'date, pnl, note, note_color, tags, images, fields, updated_at';
+const MONTH_COLS = 'month, pnl, note, note_color, images, fields, updated_at';
 const NOTE_COLS = 'id, title, body, pinned, created_at, updated_at';
 const CHECK_COLS = 'id, title, items, position, threshold, created_at, updated_at';
 
@@ -18,6 +19,8 @@ export function createSupabaseAdapter(cfg) {
   let user = null;
   const now = () => new Date().toISOString();
   const rowToDay = (r) => ({ ...r, pnl: r.pnl == null ? null : Number(r.pnl), tags: r.tags || [], images: r.images || [], fields: r.fields || [] });
+
+  const rowToMonth = (r) => ({ ...r, date: r.month, pnl: r.pnl == null ? null : Number(r.pnl), tags: [], images: r.images || [], fields: r.fields || [] });
 
   return {
     mode: 'supabase',
@@ -39,14 +42,21 @@ export function createSupabaseAdapter(cfg) {
     // ---- Tage ----
     async getDays(from, to) {
       const rows = must(await sb.from('day_entries').select(DAY_COLS).gte('date', from).lte('date', to).order('date'));
-      return rows.map(rowToDay);
+      // Monatseinträge ('YYYY-MM') kommen aus eigener Tabelle und werden mit date = 'YYYY-MM' mitgeliefert
+      const months = must(await sb.from('month_entries').select(MONTH_COLS).gte('month', from.slice(0, 7)).lte('month', to.slice(0, 7)).order('month'));
+      return [...rows.map(rowToDay), ...months.map(rowToMonth)];
     },
     async saveDay(day) {
+      if (isMonthKey(day.date)) {
+        const mrow = { user_id: user.id, month: day.date, pnl: day.pnl, note: day.note || '', note_color: day.note_color || null, images: day.images || [], fields: day.fields || [], updated_at: now() };
+        return rowToMonth(must(await sb.from('month_entries').upsert(mrow, { onConflict: 'user_id,month' }).select(MONTH_COLS).single()));
+      }
       const row = { user_id: user.id, date: day.date, pnl: day.pnl, note: day.note || '', note_color: day.note_color || null, tags: day.tags || [], images: day.images || [], fields: day.fields || [], updated_at: now() };
       const saved = must(await sb.from('day_entries').upsert(row, { onConflict: 'user_id,date' }).select(DAY_COLS).single());
       return rowToDay(saved);
     },
     async deleteDay(iso) {
+      if (isMonthKey(iso)) { must(await sb.from('month_entries').delete().eq('user_id', user.id).eq('month', iso)); return; }
       must(await sb.from('day_entries').delete().eq('user_id', user.id).eq('date', iso));
     },
 
