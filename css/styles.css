@@ -255,8 +255,15 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
 .field input.pnl-loss { color: var(--loss); }
 .field select { background: var(--bg-elev2); border: 1px solid var(--border); border-radius: 8px; padding: 9px 11px; width: 100%; outline: none; color-scheme: dark; }
 .field select:focus { border-color: var(--accent); }
-.color-row { display: flex; align-items: center; gap: 10px; }
-.color-dot { width: 16px; height: 16px; border-radius: 50%; flex-shrink: 0; }
+.color-dot { width: 16px; height: 16px; border-radius: 50%; flex-shrink: 0; box-shadow: 0 0 0 1px rgba(255,255,255,0.3); }
+.color-trigger { display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 11px; text-align: left; background: var(--bg-elev2); border: 1px solid var(--border); border-radius: 8px; }
+.color-trigger:hover, .color-trigger[aria-expanded="true"], .color-trigger:focus-visible { border-color: var(--accent); outline: none; }
+.color-name { flex: 1; }
+.color-caret { color: var(--text-muted); }
+.color-list { list-style: none; margin: 6px 0 0; padding: 6px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; background: var(--bg-elev2); border: 1px solid var(--border); border-radius: 8px; }
+.color-option { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 6px; cursor: pointer; outline: none; }
+.color-option:hover, .color-option:focus-visible { background: rgba(255,255,255,0.1); }
+.color-option[aria-selected="true"] { box-shadow: 0 0 0 1px var(--accent) inset; }
 .modal-actions { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
 
 /* ---------------- Detailbereich (Bilder + Auswertung des Tages) ---------------- */
@@ -283,6 +290,13 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
 .auth-card label { display: flex; flex-direction: column; gap: 5px; font-size: 13px; color: var(--text-muted); }
 .error { color: var(--loss); font-size: 13px; min-height: 1em; }
 
+/* "Öffnen"-Button neben den Tabs: nur auf dem Handy (schmal oder wenig Höhe), dort fehlt er in den Kalenderzellen */
+.side-tabs .tab-open { display: none; align-self: center; margin: 0 4px 0 auto; padding: 6px 12px; border-radius: 8px; background: var(--accent); color: var(--accent-ink); font-size: 13px; font-weight: 700; white-space: nowrap; border-bottom: 0; }
+@media (max-width: 640px), (max-height: 480px) {
+  .day-open { display: none; }
+  .side-tabs .tab-open { display: inline-block; }
+}
+
 /* ---------------- Responsiv ----------------
    Querformat iPad/Laptop/Handy: Split nebeneinander (Standard).
    Hochformat oder sehr schmal: Kalender oben, Seitenleiste unten, Splitter ausgeblendet. */
@@ -304,6 +318,12 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
   .day-note-text { -webkit-line-clamp: 1; }
   .day-open { padding: 2px 5px; font-size: 10px; }
   .field-grid { grid-template-columns: 1fr; }
+}
+
+/* Sehr schmale Handys: "Heute" ausblenden (der Monatsname springt ebenfalls zu heute), damit die Topbar passt */
+@media (max-width: 420px) {
+  #btnToday { display: none; }
+  .icon-btn { width: 28px; }
 }
 
 /* Handy im Querformat: sehr wenig Höhe -> alles kompakter */
