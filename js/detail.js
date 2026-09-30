@@ -54,7 +54,6 @@ export function detailPanel(state, actions) {
     actions.refreshSidebar(f.id);
   };
   const removeField = (side, id) => {
-    if (!confirm('Feld aus der Vorlage entfernen? Es verschwindet dann bei allen Tagen und Monaten.')) return;
     tpl[side] = tpl[side].filter((x) => x.id !== id);
     actions.saveFieldTemplate(tpl);
     actions.refreshSidebar();
@@ -69,8 +68,16 @@ export function detailPanel(state, actions) {
     const val = h('input', { type: 'text', class: 'field-val', 'aria-label': 'Wert', value: values[f.id] || '',
       onInput: (ev) => { values[f.id] = ev.target.value; saveDebounced({ fields: values }); } });
     if (state.focusField === f.id) setTimeout(() => label.focus(), 0);
-    return h('div', { class: 'field-row' }, label, val,
-      h('button', { class: 'item-del', title: 'Feld entfernen', 'aria-label': 'Feld entfernen', onClick: () => removeField(side, f.id) }, '×'));
+    // Löschen in zwei Schritten ohne Browser-Dialog: erster Tipp schärft den Button ("Löschen?"), zweiter Tipp entfernt das Feld
+    // (das Feld verschwindet aus der Vorlage, also bei allen Tagen und Monaten)
+    let armTimer;
+    const del = h('button', { class: 'field-del', title: 'Feld entfernen (aus der Vorlage für alle Tage/Monate)', 'aria-label': 'Feld entfernen' }, '×');
+    del.onclick = () => {
+      if (del.classList.contains('armed')) { clearTimeout(armTimer); removeField(side, f.id); return; }
+      del.classList.add('armed'); del.textContent = 'Löschen?';
+      armTimer = setTimeout(() => { del.classList.remove('armed'); del.textContent = '×'; }, 3000);
+    };
+    return h('div', { class: 'field-row' }, label, val, del);
   };
   const column = (side) => h('div', { class: 'field-col' },
     tpl[side].map((f) => fieldRow(side, f)),
@@ -85,7 +92,7 @@ export function detailPanel(state, actions) {
 
     h('div', { class: 'field' },
       h('div', { class: 'field-head' },
-        h('span', {}, `Screenshots (${entry.images?.length || 0})`),
+        h('span', {}, `Bilder (${entry.images?.length || 0})`),
         h('button', { class: 'text-btn', onClick: () => fileInput.click() }, '+ Bild hochladen'),
         fileInput),
       imageGrid(entry, iso, actions, saveDebounced)),
