@@ -397,3 +397,10 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
 .gauge-fill { height: 100%; border-radius: 3px; background: var(--loss); }
 .gauge.ok .gauge-fill { background: var(--win); }
 .gauge-mark { position: absolute; top: -4px; bottom: -4px; width: 2px; background: #fff; transform: translateX(-1px); }
+
+/* Monats-Popup: Ergebnis aus den Tagen */
+.month-sum { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; background: var(--bg-elev2); border: 1px solid var(--border); border-radius: var(--radius); }
+.month-sum-label { font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-muted); }
+.month-sum-formula { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; font-family: var(--font-num); font-size: 16px; }
+.month-sum-formula .op { color: var(--text-muted); }
+.month-sum-formula strong { font-size: 18px; }
