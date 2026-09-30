@@ -180,3 +180,5 @@ Vertrag in `js/data/index.js` dokumentieren, Laden in `loadAll()` ergänzen.
 - Bilder im Detailbereich: Flex-Raster, zentriert, 3 pro Zeile; unvollständige letzte Zeile ebenfalls zentriert.
 - Checklisten-Tab: Übersicht aller Listen (`state.openChecklist === null`); Tippen öffnet eine Liste (abhaken, Stift = Bearbeiten, „‹ Alle Listen" zurück).
 - Tag-Popup hat keinen Auto-Fokus (Tastatur erscheint erst beim Antippen eines Feldes).
+- Checklisten-Richtwert: `state.threshold` (%, Standard 85) wird als Spalte `threshold` an allen Listen gespeichert (`actions.setThreshold`). Anteil = erledigt/gesamt; Erlaubt ab Anteil >= Richtwert (leere Liste nie). Anzeige: Übersicht (Badge) + Liste (Balken mit Marke).
+- Bilder (`images[]` im Tageseintrag) haben optional `caption` (Beschriftung).
