@@ -94,6 +94,25 @@ export function debounce(fn, ms) {
   return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); };
 }
 
+/** Bytes -> "12,3 MB" */
+export function fmtBytes(n) {
+  if (n == null || Number.isNaN(n)) return '–';
+  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+  let v = Number(n), i = 0;
+  while (v >= 1024 && i < units.length - 1) { v /= 1024; i++; }
+  return `${v.toLocaleString('de-DE', { maximumFractionDigits: i >= 2 ? 1 : 0 })} ${units[i]}`;
+}
+
+/** Bild mittig quadratisch zuschneiden und auf size x size verkleinern -> Canvas (für das Profilbild) */
+export async function squareCanvas(file, size = 256) {
+  const bmp = await createImageBitmap(file);
+  const s = Math.min(bmp.width, bmp.height);
+  const c = document.createElement('canvas');
+  c.width = c.height = size;
+  c.getContext('2d').drawImage(bmp, (bmp.width - s) / 2, (bmp.height - s) / 2, s, s, 0, 0, size, size);
+  return c;
+}
+
 /** Schlüssel eines Monatseintrags: 'YYYY-MM' (Tageseinträge: 'YYYY-MM-DD') */
 export const isMonthKey = (key) => String(key).length === 7;
 export function periodTitle(key, opts) {

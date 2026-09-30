@@ -6,7 +6,7 @@ import { renderCalendar } from './calendar.js';
 import { renderSidebar } from './sidebar.js';
 import { renderDayModal } from './daymodal.js';
 import { initSplitter } from './splitter.js';
-import { MONTHS, MONTHS_SHORT, MARKETS, todayISO, uid, isMonthKey } from './utils.js';
+import { MONTHS, MONTHS_SHORT, MARKETS, todayISO, uid, isMonthKey, fmtBytes } from './utils.js';
 
 const $ = (id) => document.getElementById(id);
 let db; // Daten-Adapter (siehe js/data/index.js)
@@ -28,6 +28,7 @@ async function loadAll() {
   await ensureYear(state.year);
   const threshold = checklists.find((c) => c.threshold != null)?.threshold ?? 85;
   setState({ notes, checklists, threshold });
+  refreshAvatar(true);
 }
 
 // ---------------------------------------------------------------- Speichern (mit Statusanzeige)
@@ -103,7 +104,19 @@ const actions = {
     }
     setState(patch);
   },
-  toggleMenu(which) { setState({ menu: state.menu === which ? null : which }, ['topbar']); },
+  toggleMenu(which) {
+    const open = state.menu !== which;
+    setState({ menu: open ? which : null }, ['topbar']);
+    if (open && which === 'profile') { loadUsage(); refreshAvatar(true); }
+  },
+  async setAvatar(file) {
+    if (!file) return;
+    try { await persist(() => db.setAvatar(file)); await refreshAvatar(true); } catch { /* Fehler steht in der Statusanzeige */ }
+  },
+  async removeAvatar() {
+    try { await persist(() => db.removeAvatar()); await refreshAvatar(true); } catch { /* s. o. */ }
+  },
+  async changePassword(pw) { await persist(() => db.changePassword(pw)); },
   closeMenu() { if (state.menu) setState({ menu: null }, ['topbar']); },
   setTheme(theme) {
     try { localStorage.setItem('tj.theme', theme); } catch { /* ohne Speicher weiter */ }
@@ -228,6 +241,74 @@ const el = (tag, cls, text, attrs = {}) => {
   return e;
 };
 
+// ---- Profilbild + Speicheranzeige (Profilmenü) ----
+let avatarCache = { path: null, url: null };
+async function refreshAvatar(force = false) {
+  const path = db.getAvatarPath?.() || null;
+  if (!force && path === avatarCache.path) return;
+  let url = null;
+  if (path) { try { url = await db.imageUrl(path); } catch { url = null; } } // Supabase: signierte URL, läuft nach 1 h ab
+  avatarCache = { path, url };
+  setState({}, ['topbar']);
+}
+
+let usage = null; // { ...Werte } | { error } | null (lädt)
+async function loadUsage() {
+  try { usage = await db.getUsage(); } catch (e) { console.error(e); usage = { error: true }; }
+  if (state.menu === 'profile') renderMenus();
+}
+
+let pwOpen = false; // Formular "Passwort ändern" im Profilmenü sichtbar
+
+function usageBlock() {
+  const wrap = el('div', 'usage');
+  wrap.append(el('div', 'menu-label', 'Speicher'));
+  if (!usage) { wrap.append(el('div', 'profile-note', 'Lädt …')); return wrap; }
+  if (usage.error) { wrap.append(el('div', 'profile-note', 'Nicht verfügbar. Bitte supabase/schema.sql einmal erneut im SQL Editor ausführen.')); return wrap; }
+  const bar = (used, limit) => {
+    const pct = limit ? Math.min(100, (used / limit) * 100) : 0;
+    const b = el('div', `usage-bar${pct >= 90 ? ' full' : ''}`);
+    b.append(el('div', 'usage-fill', null, { style: `width:${pct.toFixed(1)}%` }));
+    return b;
+  };
+  wrap.append(el('div', 'usage-row', `${usage.images} Bild${usage.images === 1 ? '' : 'er'} hochgeladen`));
+  wrap.append(bar(usage.bytes, usage.limitBytes));
+  const free = Math.max(0, usage.limitBytes - usage.bytes);
+  wrap.append(el('div', 'profile-note', `${fmtBytes(usage.bytes)} von ${fmtBytes(usage.limitBytes)} belegt · ${fmtBytes(free)} frei${usage.local ? ' (Browser-Speicher dieses Geräts)' : ''}`));
+  if (usage.dbBytes != null) {
+    wrap.append(el('div', 'usage-row', 'Datenbank'));
+    wrap.append(bar(usage.dbBytes, usage.dbLimitBytes));
+    wrap.append(el('div', 'profile-note', `${fmtBytes(usage.dbBytes)} von ${fmtBytes(usage.dbLimitBytes)} belegt`));
+  }
+  return wrap;
+}
+
+function passwordBlock() {
+  const wrap = el('div', 'pw-block');
+  if (!pwOpen) {
+    const b = el('button', 'menu-item', 'Passwort ändern', { onclick: () => { pwOpen = true; renderMenus(); } });
+    b.setAttribute('role', 'menuitem');
+    wrap.append(b);
+    return wrap;
+  }
+  const input = el('input', 'pw-input', null, { type: 'password', placeholder: 'Neues Passwort (mind. 6 Zeichen)', autocomplete: 'new-password' });
+  input.setAttribute('aria-label', 'Neues Passwort');
+  const eye = el('button', 'pw-eye', 'Anzeigen', { type: 'button' }); // Passwort ist standardmäßig verdeckt
+  eye.onclick = () => { const show = input.type === 'password'; input.type = show ? 'text' : 'password'; eye.textContent = show ? 'Verbergen' : 'Anzeigen'; };
+  const msg = el('div', 'profile-note');
+  const save = el('button', 'primary small', 'Speichern', { type: 'button' });
+  save.onclick = async () => {
+    if (input.value.length < 6) { msg.textContent = 'Mindestens 6 Zeichen.'; msg.className = 'profile-note err'; return; }
+    try { await actions.changePassword(input.value); pwOpen = false; renderMenus(); }
+    catch (e) { msg.textContent = e.message || 'Fehler beim Ändern.'; msg.className = 'profile-note err'; }
+  };
+  const cancel = el('button', 'text-btn', 'Abbrechen', { type: 'button', onclick: () => { pwOpen = false; renderMenus(); } });
+  const row = el('div', 'pw-row'); row.append(input, eye);
+  const btns = el('div', 'pw-btns'); btns.append(cancel, save);
+  wrap.append(row, msg, btns);
+  return wrap;
+}
+
 function renderMenus() {
   const onCalendar = state.page === 'calendar';
   const item = (label, active, onClick, cls = 'menu-item') => {
@@ -259,14 +340,28 @@ function renderMenus() {
   // Profil: Zugangsdaten (E-Mail) und Abmelden
   const info = db.getUserInfo?.() || null;
   const email = info?.email || state.user?.email || '';
-  $('btnProfile').textContent = (email || '?').trim().charAt(0).toUpperCase();
+  const initial = (email || '?').trim().charAt(0).toUpperCase();
+  const fillAvatar = (node) => {
+    node.replaceChildren();
+    if (avatarCache.url) node.append(el('img', 'avatar-img', null, { src: avatarCache.url, alt: '' }));
+    else node.textContent = initial;
+  };
+  fillAvatar($('btnProfile'));
   const prof = $('profileMenu');
-  const rows = [
-    el('div', 'menu-label', 'Angemeldet als'),
-    el('div', 'profile-email', email || '–'),
-    el('div', 'profile-note', state.mode === 'supabase' ? 'Sync über Supabase aktiv. Das Passwort wird aus Sicherheitsgründen nicht angezeigt.' : 'Lokaler Modus: Daten nur auf diesem Gerät.'),
-  ];
+  const big = el('div', 'avatar big'); fillAvatar(big);
+  const file = el('input', 'hidden', null, { type: 'file', accept: 'image/*' });
+  file.onchange = () => { actions.setAvatar(file.files[0]); file.value = ''; };
+  const pick = el('button', 'text-btn', avatarCache.url ? 'Bild ändern' : 'Profilbild hinzufügen', { onclick: () => file.click() });
+  const head = el('div', 'profile-head');
+  const who = el('div', 'profile-who');
+  who.append(el('div', 'menu-label', 'Angemeldet als'), el('div', 'profile-email', email || '–'));
+  const pics = el('div', 'profile-pics'); pics.append(pick, file);
+  if (avatarCache.url) pics.append(el('button', 'text-btn', 'Entfernen', { onclick: () => actions.removeAvatar() }));
+  who.append(pics);
+  head.append(big, who);
+  const rows = [head, el('div', 'profile-note', state.mode === 'supabase' ? 'Sync über Supabase aktiv.' : 'Lokaler Modus: Daten nur auf diesem Gerät.'), el('div', 'menu-sep'), usageBlock()];
   if (state.mode === 'supabase' && state.user) {
+    rows.push(el('div', 'menu-sep'), passwordBlock());
     rows.push(el('div', 'menu-sep'));
     const out = el('button', 'menu-item danger', 'Abmelden', { onclick: () => actions.signOut() });
     out.setAttribute('role', 'menuitem');
@@ -315,7 +410,11 @@ function renderAnalysis() {
 function bindTopbar() {
   $('btnMenu').onclick = () => actions.toggleMenu('main');
   $('btnProfile').onclick = () => actions.toggleMenu('profile');
-  document.addEventListener('click', (e) => { if (state.menu && !e.target.closest('.menu-wrap, .profile-wrap')) actions.closeMenu(); });
+  // composedPath statt closest(): Buttons im Menü werden beim Klick neu gerendert und hängen dann nicht mehr im DOM
+  document.addEventListener('click', (e) => {
+    const inside = e.composedPath().some((n) => n.classList?.contains('menu-wrap') || n.classList?.contains('profile-wrap'));
+    if (state.menu && !inside) actions.closeMenu();
+  });
   $('btnPrev').onclick = () => actions.step(-1);
   $('btnNext').onclick = () => actions.step(1);
   $('btnToday').onclick = () => actions.goToday();
@@ -375,6 +474,7 @@ async function main() {
       showAuth(!u);
       if (!u) { state.days = {}; state.notes = []; state.checklists = []; setState({}); }
       else if (changed) await loadAll();
+      else refreshAvatar();
     });
     if (!user) { showAuth(true); setState({}); return; }
   }
