@@ -94,6 +94,13 @@ export function debounce(fn, ms) {
   return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); };
 }
 
+/** Feldwerte eines Eintrags als Objekt { feldId: wert } (alte Einträge hatten eine Liste [{id, value, label}]) */
+export function fieldValues(f) {
+  if (Array.isArray(f)) return Object.fromEntries(f.map((x) => [x.id, x.value || '']));
+  return f && typeof f === 'object' ? f : {};
+}
+export const hasFieldValues = (f) => Object.values(fieldValues(f)).some((v) => String(v ?? '').trim());
+
 /** Bytes -> "12,3 MB" */
 export function fmtBytes(n) {
   if (n == null || Number.isNaN(n)) return '–';

@@ -6,7 +6,7 @@ import { renderCalendar } from './calendar.js';
 import { renderSidebar } from './sidebar.js';
 import { renderDayModal } from './daymodal.js';
 import { initSplitter } from './splitter.js';
-import { MONTHS, MONTHS_SHORT, MARKETS, todayISO, uid, isMonthKey, fmtBytes } from './utils.js';
+import { MONTHS, MONTHS_SHORT, MARKETS, todayISO, uid, isMonthKey, fmtBytes, hasFieldValues } from './utils.js';
 
 const $ = (id) => document.getElementById(id);
 let db; // Daten-Adapter (siehe js/data/index.js)
@@ -24,10 +24,10 @@ async function ensureYear(year) {
 async function loadAll() {
   state.days = {};
   state.loadedRanges = new Set();
-  const [notes, checklists] = await Promise.all([db.listNotes(), db.listChecklists()]);
+  const [notes, checklists, fieldTemplate] = await Promise.all([db.listNotes(), db.listChecklists(), db.getFieldTemplate()]);
   await ensureYear(state.year);
   const threshold = checklists.find((c) => c.threshold != null)?.threshold ?? 85;
-  setState({ notes, checklists, threshold });
+  setState({ notes, checklists, threshold, fieldTemplate });
   refreshAvatar(true);
 }
 
@@ -49,7 +49,7 @@ async function persist(work) {
   catch (e) { console.error(e); setStatus('Fehler: ' + (e.message || e), true); throw e; }
 }
 
-const isEmptyDay = (d) => d.pnl == null && !(d.note || '').trim() && !(d.tags || []).length && !(d.images || []).length && !(d.fields || []).length;
+const isEmptyDay = (d) => d.pnl == null && !(d.note || '').trim() && !(d.tags || []).length && !(d.images || []).length && !hasFieldValues(d.fields);
 
 // ---------------------------------------------------------------- Aktionen (werden an die Renderer gereicht)
 
@@ -116,6 +116,11 @@ const actions = {
   async removeAvatar() {
     try { await persist(() => db.removeAvatar()); await refreshAvatar(true); } catch { /* s. o. */ }
   },
+  // Vorlage der Auswertungsfelder: gilt für alle Tage/Monate (nur Namen + Reihenfolge, die Werte stehen je Eintrag)
+  async saveFieldTemplate(tpl) {
+    state.fieldTemplate = tpl; // in place geändert, kein Re-Render (sonst verliert das Eingabefeld den Fokus)
+    await persist(() => db.saveFieldTemplate(tpl));
+  },
   async changePassword(pw) { await persist(() => db.changePassword(pw)); },
   closeMenu() { if (state.menu) setState({ menu: null }, ['topbar']); },
   setTheme(theme) {
@@ -127,7 +132,7 @@ const actions = {
   // Tage
   async updateDay(iso, patch) {
     const market = state.market;
-    const merged = { date: iso, pnl: null, note: '', note_color: null, tags: [], images: [], fields: [], ...(state.days[iso] || {}), ...patch };
+    const merged = { date: iso, pnl: null, note: '', note_color: null, tags: [], images: [], fields: {}, ...(state.days[iso] || {}), ...patch };
     if (isEmptyDay(merged)) {
       delete state.days[iso];
       setState({}, ['calendar']);
@@ -148,7 +153,7 @@ const actions = {
     setState({});
   },
   async addImages(iso, files) {
-    const entry = state.days[iso] || { date: iso, pnl: null, note: '', note_color: null, tags: [], images: [], fields: [] };
+    const entry = state.days[iso] || { date: iso, pnl: null, note: '', note_color: null, tags: [], images: [], fields: {} };
     const market = state.market;
     const uploaded = [];
     await persist(async () => { for (const f of files) uploaded.push(await db.uploadImage(iso, f, market)); });

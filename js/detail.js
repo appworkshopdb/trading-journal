@@ -1,8 +1,9 @@
 // Detailbereich eines Tages (öffnet sich rechts über den Button "Öffnen" in der Kalenderzelle):
-// oben die Screenshots (3 pro Zeile), darunter die "Auswertung des Tages" als frei anlegbare Felder in 2 Spalten.
+// oben die Screenshots (3 pro Zeile), darunter zwei feste Spalten mit Feldern. Namen + Reihenfolge der Felder sind eine
+// Vorlage für ALLE Tage/Monate (state.fieldTemplate); die Werte gehören zum jeweiligen Tag/Monat (entry.fields = { feldId: wert }).
 // Texteingaben speichern entprellt, ohne die Seitenleiste neu zu rendern (sonst verliert das Feld den Fokus).
 
-import { h, periodTitle, monthTotal, isMonthKey, fmtMoney, signClass, uid } from './utils.js';
+import { h, periodTitle, monthTotal, isMonthKey, fmtMoney, signClass, uid, debounce, fieldValues } from './utils.js';
 import { CONFIG } from '../config.js';
 
 const imageUrlCache = new Map(); // path -> URL (Supabase: signierte URL, 1h gültig)
@@ -10,7 +11,13 @@ const imageUrlCache = new Map(); // path -> URL (Supabase: signierte URL, 1h gü
 export function detailPanel(state, actions) {
   const iso = state.detailDate;
   const entry = state.days[iso] || { date: iso, pnl: null, note: '', tags: [], images: [], fields: [] };
-  const fields = entry.fields || [];
+  // Werte dieses Eintrags; alte Einträge (Liste mit Namen) werden umgewandelt, ihre Namen werden zur Vorlage, falls noch keine existiert
+  const tpl = state.fieldTemplate;
+  const values = { ...fieldValues(entry.fields) };
+  if (Array.isArray(entry.fields) && entry.fields.length && !tpl.left.length && !tpl.right.length) {
+    entry.fields.forEach((f, i) => (i % 2 ? tpl.right : tpl.left).push({ id: f.id, label: f.label || '' }));
+    actions.saveFieldTemplate(tpl);
+  }
   const title = periodTitle(iso, { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' });
   const pnl = isMonthKey(iso) ? monthTotal(state.days, iso) : entry.pnl; // Monat: Summe der Tage (+ eigener Anteil)
 
@@ -25,31 +32,37 @@ export function detailPanel(state, actions) {
   };
   const saveDebounced = (patch) => { Object.assign(pending, patch); clearTimeout(timer); timer = setTimeout(flushNow, 500); };
 
-  const addField = () => {
+  // Vorlage speichern (entprellt); Änderungen an Namen/Reihenfolge gelten für alle Tage und Monate
+  const saveTpl = debounce(() => actions.saveFieldTemplate(tpl), 500);
+  const addField = (side) => {
     flushNow();
-    const f = { id: uid(), value: '', label: '' };
-    actions.updateDay(iso, { fields: [...(state.days[iso]?.fields || []), f] });
+    const f = { id: uid(), label: '' };
+    tpl[side].push(f);
+    actions.saveFieldTemplate(tpl);
     actions.refreshSidebar(f.id);
   };
-  const removeField = (id) => {
-    flushNow();
-    actions.updateDay(iso, { fields: (state.days[iso]?.fields || []).filter((x) => x.id !== id) });
+  const removeField = (side, id) => {
+    if (!confirm('Feld aus der Vorlage entfernen? Es verschwindet dann bei allen Tagen und Monaten.')) return;
+    tpl[side] = tpl[side].filter((x) => x.id !== id);
+    actions.saveFieldTemplate(tpl);
     actions.refreshSidebar();
   };
 
   const fileInput = h('input', { type: 'file', accept: 'image/*', multiple: true, class: 'hidden',
     onChange: async (ev) => { await actions.addImages(iso, [...ev.target.files]); ev.target.value = ''; } });
 
-  const fieldRow = (f) => {
-    const val = h('input', { type: 'text', class: 'field-val', 'aria-label': 'Wert', value: f.value || '',
-      onInput: (ev) => { f.value = ev.target.value; saveDebounced({ fields }); } });
-    if (state.focusField === f.id) setTimeout(() => val.focus(), 0);
-    return h('div', { class: 'field-row' },
-      val,
-      h('input', { type: 'text', class: 'field-label', placeholder: 'Bezeichnung', 'aria-label': 'Bezeichnung', value: f.label || '',
-        onInput: (ev) => { f.label = ev.target.value; saveDebounced({ fields }); } }),
-      h('button', { class: 'item-del', title: 'Feld entfernen', 'aria-label': 'Feld entfernen', onClick: () => removeField(f.id) }, '×'));
+  const fieldRow = (side, f) => {
+    const label = h('input', { type: 'text', class: 'field-label', placeholder: 'Bezeichnung', 'aria-label': 'Bezeichnung des Felds', value: f.label || '',
+      onInput: (ev) => { f.label = ev.target.value; saveTpl(); } });
+    const val = h('input', { type: 'text', class: 'field-val', 'aria-label': 'Wert', value: values[f.id] || '',
+      onInput: (ev) => { values[f.id] = ev.target.value; saveDebounced({ fields: values }); } });
+    if (state.focusField === f.id) setTimeout(() => label.focus(), 0);
+    return h('div', { class: 'field-row' }, label, val,
+      h('button', { class: 'item-del', title: 'Feld entfernen', 'aria-label': 'Feld entfernen', onClick: () => removeField(side, f.id) }, '×'));
   };
+  const column = (side) => h('div', { class: 'field-col' },
+    tpl[side].map((f) => fieldRow(side, f)),
+    h('button', { class: 'dashed-btn', onClick: () => addField(side) }, '+ Feld'));
 
   return h('div', { class: 'panel detail-panel' },
     h('div', { class: 'detail-head' },
@@ -66,11 +79,7 @@ export function detailPanel(state, actions) {
       imageGrid(entry, iso, actions, saveDebounced)),
 
     h('div', { class: 'detail-fields' },
-      h('div', { class: 'field-head' }, h('span', {}, isMonthKey(iso) ? 'Auswertung des Monats' : 'Auswertung des Tages')),
-      fields.length
-        ? h('div', { class: 'field-grid' }, fields.map(fieldRow))
-        : h('p', { class: 'muted small' }, 'Noch keine Felder – z. B. „Setup nach Plan“ oder „Anzahl Trades“.'),
-      h('button', { class: 'dashed-btn', onClick: addField }, '+ neues Feld')),
+      h('div', { class: 'field-cols' }, column('left'), column('right'))),
   );
 }
 

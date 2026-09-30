@@ -31,6 +31,7 @@ export const state = {
   loadedRanges: new Set(),// 'YYYY' oder 'YYYY-MM', bereits vom Adapter geladen
   notes: [],
   checklists: [],
+  fieldTemplate: { left: [], right: [] }, // Vorlage der Auswertungsfelder (Namen + Reihenfolge, zwei Spalten) für alle Tage/Monate
   threshold: 85,          // Richtwert in % für alle Checklisten (ab so vielen erledigten Punkten: erlaubt)
   openChecklist: null,    // Checkliste, die im Checklisten-Tab geöffnet ist (sonst Übersicht aller Listen)
   editingChecklist: null, // Checkliste, die gerade in der Bearbeitungsansicht ist (Stift)
