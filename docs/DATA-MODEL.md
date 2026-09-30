@@ -9,13 +9,15 @@ IDs sind UUIDs (`crypto.randomUUID()` im Client, `gen_random_uuid()` als DB-Defa
 |---|---|---|---|
 | `date` | `date` | date | Kalendertag, zusammen mit `user_id` eindeutig |
 | `pnl` | `pnl` | numeric(14,2) / null | Tagesergebnis in `CONFIG.CURRENCY`. `null` = nichts eingetragen. `0` = Break-even (zählt als gehandelter Tag) |
-| `note` | `note` | text | Freitext des Tages |
-| `tags` | `tags` | text[] | Schlagworte, z.B. `['Breakout','Overtrading']` |
+| `note` | `note` | text | Kurze Notiz des Tages (erscheint im Kalender) |
+| `note_color` | `note_color` | text / null | Farb-ID der Notiz: `blau`, `orange`, `lila`, `gelb`, `pink`, `grau` (siehe `NOTE_COLORS` in `utils.js`) |
+| `tags` | `tags` | text[] | Schlagworte – aktuell ohne Oberfläche, Daten bleiben erhalten |
 | `images` | `images` | jsonb | Array von `{ id, path, name }` – siehe unten |
+| `fields` | `fields` | jsonb | „Auswertung des Tages": Array von `{ id, value, label }` (kurzer Wert + Bezeichnung, frei anlegbar) |
 | – | `user_id` | uuid | Besitzer (Default `auth.uid()`), nur im Supabase-Modus |
 | `updated_at` | `updated_at` | timestamptz | wird vom Client gesetzt |
 
-**Leerer Tag** = `pnl == null && note.trim() === '' && tags.length === 0 && images.length === 0` → wird gelöscht, nicht gespeichert.
+**Leerer Tag** = `pnl == null && note.trim() === '' && tags.length === 0 && images.length === 0 && fields.length === 0` → wird gelöscht, nicht gespeichert.
 
 ### Bildverweis `{ id, path, name }`
 
@@ -44,7 +46,7 @@ Sortierung: `pinned desc, updated_at desc`.
 |---|---|---|
 | `id` | `id` | uuid |
 | `title` | `title` | text |
-| `items` | `items` | jsonb: `[{ id, text, done }]` |
+| `items` | `items` | jsonb: `[{ id, text, info, done }]` – `info` = optionaler Infotext unter dem Punkt |
 | `position` | `position` | integer – Reihenfolge der Listen |
 | `created_at`, `updated_at` | ebenso | timestamptz |
 

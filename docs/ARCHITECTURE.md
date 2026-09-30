@@ -25,9 +25,10 @@
 ## Render-Loop
 
 * `subscribe(render)` in `app.js`. Jeder `setState()`-Aufruf ruft `render(state, parts)`.
-* `parts === null` → alles; sonst nur die genannten Teile (`'topbar'`, `'calendar'`, `'sidebar'`).
+* `parts === null` → alles; sonst nur die genannten Teile (`'topbar'`, `'calendar'`, `'sidebar'`, `'modal'`).
+* Das Tag-Popup (`daymodal.js`) baut sich nur neu auf, wenn sich `state.popupDate` ändert – Eingaben gehen bei Hintergrund-Renderings nicht verloren.
 * Renderer bauen ihren Teilbaum komplett neu (`root.replaceChildren(...)`). Kein Diffing.
-* Fokus-Erhalt bei Texteingabe: Der Tag-Editor (`dayPanel`) und der Notiz-Editor speichern entprellt und
+* Fokus-Erhalt bei Texteingabe: Der Detailbereich (`detailPanel`) und der Notiz-Editor speichern entprellt und
   lösen nur `setState({}, ['calendar'])` bzw. gar kein Re-Render aus. Erst ein Tab-/Tageswechsel rendert die
   Seitenleiste neu. Checklisten rendern bei jeder Änderung neu (keine laufende Texteingabe außer Titel/„Punkt
   hinzufügen"; für letzteres setzt `state.focusChecklist` den Fokus nach dem Re-Render wieder).
