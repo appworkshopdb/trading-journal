@@ -116,8 +116,8 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
   gap: 4px;
 }
 .day {
-  position: relative; display: flex; flex-direction: column; align-items: flex-start;
-  padding: 6px 7px; min-width: 0; text-align: left;
+  position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 3px;
+  padding: 6px 7px; min-width: 0; text-align: left; overflow: hidden; cursor: pointer;
   background: var(--bg-elev); border: 1px solid var(--border); border-radius: 8px;
   transition: border-color 0.1s, transform 0.05s;
 }
@@ -131,7 +131,16 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
 .day.loss { background: var(--loss-bg); border-color: rgba(var(--loss-rgb), 0.45); }
 .day.flat { background: var(--flat-bg); }
 .day-num { font-size: 13px; font-weight: 600; color: var(--text-muted); }
-.day-pnl { margin-top: auto; font-weight: 700; font-size: clamp(11px, 1.4vw, 15px); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+/* Transparenter Button über der ganzen Zelle (Popup); Inhalt lässt Klicks durch, nur "Öffnen" fängt sie selbst ab */
+.day-hit { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: inherit; z-index: 1; }
+.day-hit:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: -2px; }
+.day > .day-num, .day > .day-note, .day > .day-foot, .day > .day-marks { pointer-events: none; }
+.day-note { width: 100%; min-width: 0; border-left: 3px solid var(--note, var(--flat)); padding-left: 5px; }
+.day-note-text { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; font-size: 11px; line-height: 1.3; color: var(--text); word-break: break-word; }
+.day-foot { margin-top: auto; width: 100%; display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 3px 4px; min-width: 0; } /* schmale Zellen: Betrag oben, "Öffnen" darunter */
+.day-open { position: relative; z-index: 2; pointer-events: auto; flex-shrink: 0; padding: 3px 8px; font-size: 11px; font-weight: 600; border-radius: 6px; border: 1px solid var(--border); color: var(--text-muted); }
+.day-open:hover, .day.selected .day-open { background: var(--accent); border-color: var(--accent); color: #fff; }
+.day-pnl { font-weight: 700; font-size: clamp(11px, 1.4vw, 15px); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 .day.win .day-pnl { color: var(--win); }
 .day.loss .day-pnl { color: var(--loss); }
 .day.flat .day-pnl { color: var(--flat); }
@@ -194,7 +203,7 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
 .note-body { flex: 1; }
 
 /* Bilder */
-.image-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }
+.image-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; } /* bis zu 3 nebeneinander, ab dem 4. Bild neue Zeile */
 .thumb { position: relative; margin: 0; aspect-ratio: 16 / 10; border-radius: 8px; overflow: hidden; background: var(--bg-elev2); border: 1px solid var(--border); }
 .thumb-open { width: 100%; height: 100%; display: block; }
 .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -216,14 +225,48 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
 .checklist-title { flex: 1; font-weight: 700; background: transparent; border-color: transparent; padding: 4px 6px; }
 .checklist-title:focus { background: var(--bg); border-color: var(--accent); }
 .check-items { list-style: none; margin: 0; padding: 0; }
-.check-items li { display: flex; align-items: center; gap: 6px; padding: 4px 6px; border-radius: 6px; }
+.check-items li { display: flex; align-items: flex-start; gap: 6px; padding: 4px 6px; border-radius: 6px; }
 .check-items li:hover { background: rgba(255,255,255,0.03); }
-.check-items label { flex: 1; display: flex; align-items: center; gap: 10px; cursor: pointer; }
-.check-items input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--accent); }
-.check-items li.done span { text-decoration: line-through; color: var(--text-muted); }
+.check-items label { flex: 1; min-width: 0; display: flex; align-items: flex-start; gap: 10px; cursor: pointer; }
+.check-items input[type="checkbox"] { width: 18px; height: 18px; margin: 1px 0 0; flex-shrink: 0; accent-color: var(--accent); }
+.item-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.item-info { font-size: 12px; line-height: 1.4; color: var(--text-muted); white-space: pre-wrap; word-break: break-word; }
+.check-items li.done .item-text { text-decoration: line-through; color: var(--text-muted); }
 .item-del { color: var(--text-muted); font-size: 16px; padding: 2px 6px; border-radius: 6px; opacity: 0.5; }
 .item-del:hover { opacity: 1; color: var(--loss); }
 .add-item { background: transparent; border-style: dashed; padding: 7px 10px; font-size: 14px; }
+.add-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.add-row .add-point { flex: 1 1 140px; width: auto; }
+.add-row .add-info { flex: 2 1 200px; width: auto; }
+
+/* ---------------- Popup am Kalendertag ---------------- */
+.day-modal { background: var(--bg-elev); border: 1px solid var(--border); border-radius: 14px; padding: 20px; width: 420px; max-width: 100%; max-height: 100%; overflow: auto; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 20px 60px rgba(0,0,0,0.7); }
+.modal-head { display: flex; align-items: center; gap: 8px; }
+.modal-head h2 { flex: 1; margin: 0; font-size: 18px; }
+.modal-pnl { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.field input.pnl-gain, .field input.pnl-loss { font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.field input.pnl-gain { color: var(--win); }
+.field input.pnl-loss { color: var(--loss); }
+.field select { background: var(--bg-elev2); border: 1px solid var(--border); border-radius: 8px; padding: 9px 11px; width: 100%; outline: none; color-scheme: dark; }
+.field select:focus { border-color: var(--accent); }
+.color-row { display: flex; align-items: center; gap: 10px; }
+.color-dot { width: 16px; height: 16px; border-radius: 50%; flex-shrink: 0; }
+.modal-actions { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+
+/* ---------------- Detailbereich (Bilder + Auswertung des Tages) ---------------- */
+.detail-head { display: flex; align-items: center; gap: 8px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+.detail-date { font-weight: 700; }
+.detail-pnl { font-weight: 700; margin-left: 4px; font-variant-numeric: tabular-nums; }
+.detail-fields { display: flex; flex-direction: column; gap: 12px; padding-top: 14px; border-top: 1px solid var(--border); }
+.field-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 24px; }
+.field-row { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.field-val, .field-label { background: var(--bg-elev2); border: 1px solid var(--border); border-radius: 8px; outline: none; min-width: 0; }
+.field-val { width: 64px; flex-shrink: 0; padding: 7px 8px; text-align: center; }
+.field-label { flex: 1; padding: 7px 8px; background: transparent; border-color: transparent; }
+.field-label:hover { border-color: var(--border); }
+.field-val:focus, .field-label:focus { border-color: var(--accent); }
+.dashed-btn { align-self: flex-start; background: transparent; border: 1px dashed var(--border); color: var(--text-muted); border-radius: 8px; padding: 8px 14px; font-size: 14px; }
+.dashed-btn:hover { border-color: var(--accent); color: var(--text); }
 
 /* ---------------- Overlays ---------------- */
 .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 50; padding: 20px; }
@@ -252,6 +295,9 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
   .stat { padding: 6px 8px; }
   .stat-value { font-size: 14px; }
   .month-grid { grid-template-rows: repeat(var(--rows, 6), minmax(44px, 1fr)); }
+  .day-note-text { -webkit-line-clamp: 1; }
+  .day-open { padding: 2px 5px; font-size: 10px; }
+  .field-grid { grid-template-columns: 1fr; }
 }
 
 /* Handy im Querformat: sehr wenig Höhe -> alles kompakter */
@@ -266,6 +312,8 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
   .day { padding: 3px 5px; }
   .day-num { font-size: 11px; }
   .day-pnl { font-size: 10px; }
+  .day-note-text { -webkit-line-clamp: 1; font-size: 10px; }
+  .day-open { padding: 1px 4px; font-size: 9px; }
   .side-content { padding: 10px; }
   .year-chart { display: none; }
 }
