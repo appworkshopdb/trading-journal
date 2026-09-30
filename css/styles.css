@@ -3,20 +3,22 @@
    Breite der Kalenderspalte über CSS-Variable --split (wird vom Splitter gesetzt). */
 
 :root {
-  --bg: #0f1216;
-  --bg-elev: #161a20;
-  --bg-elev2: #1d222a;
-  --border: #2a313b;
-  --text: #e6e9ee;
-  --text-muted: #8a94a3;
+  --bg: #000000;            /* reines Schwarz */
+  --bg-elev: #0b0b0b;
+  --bg-elev2: #151515;
+  --border: #262626;
+  --text: #f2f2f2;          /* fast Weiß */
+  --text-muted: #9b9b9b;    /* Hellgrau */
   --accent: #5f8f8b;        /* Teal wie in der Skizze */
   --accent-strong: #7fb3ae;
-  --win: #34c98a;
-  --win-bg: rgba(52, 201, 138, 0.16);
-  --loss: #ef5b6a;
-  --loss-bg: rgba(239, 91, 106, 0.16);
-  --flat: #9aa3b0;
-  --flat-bg: rgba(154, 163, 176, 0.14);
+  --win: #089981;           /* TradingView Grün (Pine: color.teal / Standard-Kerze) */
+  --win-rgb: 8, 153, 129;
+  --win-bg: rgba(var(--win-rgb), 0.18);
+  --loss: #f23645;          /* TradingView Rot (Pine: color.red / Standard-Kerze) */
+  --loss-rgb: 242, 54, 69;
+  --loss-bg: rgba(var(--loss-rgb), 0.18);
+  --flat: #9b9b9b;
+  --flat-bg: rgba(155, 155, 155, 0.14);
   --today: #f0b35c;
   --radius: 10px;
   --topbar-h: 52px;
@@ -125,8 +127,8 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
 .day.selected { border-color: var(--accent-strong); box-shadow: 0 0 0 1px var(--accent-strong) inset; }
 .day.today .day-num { color: var(--today); }
 .day.today .day-num::after { content: ""; display: inline-block; width: 5px; height: 5px; margin-left: 4px; border-radius: 50%; background: var(--today); vertical-align: middle; }
-.day.win { background: var(--win-bg); border-color: rgba(52, 201, 138, 0.35); }
-.day.loss { background: var(--loss-bg); border-color: rgba(239, 91, 106, 0.35); }
+.day.win { background: var(--win-bg); border-color: rgba(var(--win-rgb), 0.45); }
+.day.loss { background: var(--loss-bg); border-color: rgba(var(--loss-rgb), 0.45); }
 .day.flat { background: var(--flat-bg); }
 .day-num { font-size: 13px; font-weight: 600; color: var(--text-muted); }
 .day-pnl { margin-top: auto; font-weight: 700; font-size: clamp(11px, 1.4vw, 15px); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
