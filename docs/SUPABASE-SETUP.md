@@ -44,3 +44,11 @@ Für den Alltag: lieber gleich mit Supabase starten.
 ## Backup
 Dashboard → **Database → Backups** (täglich im Pro-Plan; im Free-Plan gelegentlich manuell exportieren:
 SQL Editor → `select * from day_entries` → Download CSV, oder `pg_dump` über die Connection-String).
+
+## Selbst-Registrierung ohne E-Mail-Bestätigung
+
+Die Login-Karte der App hat „Noch kein Konto? Registrieren": Nutzer legen mit eigener E-Mail + Passwort (mind. 6 Zeichen) selbst einen Supabase-Benutzer an und sind sofort angemeldet.
+
+Einmalig im Supabase Dashboard: **Authentication → Sign In / Providers → Email** → **„Confirm email" ausschalten** (Registrierungen müssen erlaubt sein: „Allow new users to sign up" an). Ist die Bestätigung noch aktiv, zeigt die App nach dem Registrieren einen entsprechenden Hinweis.
+
+Jeder Benutzer sieht nur seine eigenen Daten (Row Level Security + Storage-Ordner je Benutzer). Hinweis: Das Speicherkontingent des Supabase-Projekts (Free: 1 GB Dateien, 500 MB Datenbank) teilen sich alle Benutzer.
