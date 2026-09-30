@@ -230,6 +230,14 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
 .checklist-head { display: flex; align-items: center; gap: 6px; }
 .checklist-title { flex: 1; font-weight: 700; background: transparent; border-color: transparent; padding: 4px 6px; }
 .checklist-title:focus { background: var(--bg); border-color: var(--accent); }
+.checklist-title-static { flex: 1; min-width: 0; padding: 4px 6px; font-weight: 700; word-break: break-word; }
+.checklist-title.editing { background: var(--bg); border-color: var(--border); }
+.icon-edit { display: inline-flex; align-items: center; }
+.edit-item { align-items: flex-start; }
+.edit-item-fields { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.edit-input { width: 100%; padding: 7px 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; outline: none; }
+.edit-input.info { font-size: 13px; color: var(--text-muted); }
+.edit-input:focus { border-color: var(--accent); }
 .check-items { list-style: none; margin: 0; padding: 0; }
 .check-items li { display: flex; align-items: flex-start; gap: 6px; padding: 4px 6px; border-radius: 6px; }
 .check-items li:hover { background: rgba(255,255,255,0.03); }
@@ -290,11 +298,12 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
 .auth-card label { display: flex; flex-direction: column; gap: 5px; font-size: 13px; color: var(--text-muted); }
 .error { color: var(--loss); font-size: 13px; min-height: 1em; }
 
-/* "Öffnen"-Button neben den Tabs: nur auf dem Handy (schmal oder wenig Höhe), dort fehlt er in den Kalenderzellen */
-.side-tabs .tab-open { display: none; align-self: center; margin: 0 4px 0 auto; padding: 6px 12px; border-radius: 8px; background: var(--accent); color: var(--accent-ink); font-size: 13px; font-weight: 700; white-space: nowrap; border-bottom: 0; }
+/* Handy (schmal oder wenig Höhe): "Öffnen" fehlt in den Kalenderzellen und steht stattdessen im Tag-Popup */
+.modal-open { display: none; width: 100%; padding: 11px 14px; border-radius: 8px; border: 1px solid var(--accent); color: var(--text); font-weight: 700; text-align: center; }
+.modal-open:hover, .modal-open:focus-visible { background: var(--accent); color: var(--accent-ink); outline: none; }
 @media (max-width: 640px), (max-height: 480px) {
   .day-open { display: none; }
-  .side-tabs .tab-open { display: inline-block; }
+  .modal-open { display: block; }
 }
 
 /* ---------------- Responsiv ----------------
