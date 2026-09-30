@@ -147,3 +147,30 @@ create policy "screenshots delete own" on storage.objects
 --    Authentication -> Users -> "Add user" (E-Mail + Passwort, Auto Confirm an)
 --    Authentication -> Providers -> Email -> "Allow new users to sign up" AUS
 -- ---------------------------------------------------------------------
+
+-- ---------------------------------------------------------------------
+-- 4) Speicheranzeige im Profilmenü: Anzahl Bilder, belegter Speicher, Datenbankgröße
+--    (Clients dürfen die Größen nicht direkt lesen -> kleine Funktion mit security definer)
+-- ---------------------------------------------------------------------
+
+create or replace function public.usage_stats()
+returns json
+language sql
+security definer
+set search_path = public, storage
+as $$
+  select json_build_object(
+    -- Bilder des angemeldeten Benutzers (ohne Profilbild)
+    'images', (select count(*) from storage.objects
+               where bucket_id = 'screenshots'
+                 and (storage.foldername(name))[1] = auth.uid()::text
+                 and (storage.foldername(name))[2] is distinct from 'profile'),
+    -- belegter Datei-Speicher des Projekts (alle Buckets)
+    'bytes', (select coalesce(sum((metadata->>'size')::bigint), 0) from storage.objects),
+    -- Größe der Datenbank
+    'db_bytes', pg_database_size(current_database())
+  );
+$$;
+
+revoke all on function public.usage_stats() from public, anon;
+grant execute on function public.usage_stats() to authenticated;
