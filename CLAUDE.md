@@ -93,7 +93,10 @@ UI-Ereignis ──► actions.xyz() ──► state mutieren + db.save…() ─�
 * **Notizfarben** (`NOTE_COLORS` in `utils.js`, IDs werden gespeichert – nicht umbenennen): Blau, Türkis, Grün, Gelb, Orange, Rot, Pink, Lila, Weiß, Grau.
   Die Auswahl im Popup ist eine eigene Dropdown-Liste (Farbpunkt vor jedem Namen), kein `<select>`.
 * **Handy** (Breite ≤ 640 px oder Höhe ≤ 480 px, rein per CSS-Media-Query): der Button „Öffnen" fehlt in den Kalenderzellen;
-  stattdessen steht `#tabOpenDay` rechts neben den Tabs und öffnet den Detailbereich des zuletzt angetippten Tages.
+  stattdessen steht `.modal-open` („Öffnen · Bilder & Auswertung") im Tag-Popup. Er speichert die Eingaben und öffnet den Detailbereich
+  (`actions.savePopupAndOpen`). So genügt ein Antippen des Tages.
+* **Checklisten:** Normalansicht mit Haken; der Stift (✎) öffnet die Bearbeitungsansicht (`state.editingChecklist`): Titel sowie Text und
+  Infotext jedes Punkts sind editierbar, „Fertig" beendet sie. Neue Listen starten direkt in der Bearbeitungsansicht.
 * **Monatsansicht:** 7 Spalten (Mo–So), so viele Wochenzeilen wie der Monat braucht (4–6). Zellen füllen die
   verfügbare Höhe (`flex: 1` + `grid-template-rows: repeat(var(--rows), 1fr)`). Zelle zeigt Tagesnummer,
   Notiztext mit Farbleiste, PnL (grün/rot/grau), Bilder-Anzahl und den Button „Öffnen". Die Zelle ist ein `<div>`
