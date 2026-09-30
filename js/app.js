@@ -84,7 +84,7 @@ const actions = {
     await ensureYear(t.getFullYear());
     setState({ year: t.getFullYear(), month: t.getMonth(), selectedDate: todayISO() });
   },
-  setSideTab(tab) { setState({ sideTab: tab, detailDate: null, editingChecklist: null }); },
+  setSideTab(tab) { setState({ sideTab: tab, detailDate: null, editingChecklist: null, openChecklist: null }); },
 
   // Tage
   async updateDay(iso, patch) {
@@ -158,8 +158,9 @@ const actions = {
     const cl = { id: uid(), title: '', items: [], position: state.checklists.length, created_at: new Date().toISOString() };
     const saved = await persist(() => db.saveChecklist(cl));
     // Neue Liste öffnet direkt in der Bearbeitungsansicht, Fokus auf dem Titel
-    setState({ checklists: [...state.checklists, saved || cl], focusTitle: cl.id, editingChecklist: cl.id });
+    setState({ checklists: [...state.checklists, saved || cl], focusTitle: cl.id, editingChecklist: cl.id, openChecklist: cl.id });
   },
+  openChecklist(id) { setState({ openChecklist: id, editingChecklist: null }, ['sidebar']); },
   editChecklist(id) { setState({ editingChecklist: id }, ['sidebar']); },
   async updateChecklist(id, patch, rerender = false, focusId = null) {
     const cl = state.checklists.find((c) => c.id === id);
@@ -171,7 +172,7 @@ const actions = {
   },
   async deleteChecklist(id) {
     await persist(() => db.deleteChecklist(id));
-    setState({ checklists: state.checklists.filter((c) => c.id !== id) });
+    setState({ checklists: state.checklists.filter((c) => c.id !== id), openChecklist: null, editingChecklist: null });
   },
 };
 

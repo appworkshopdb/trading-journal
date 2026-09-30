@@ -24,6 +24,7 @@ export const state = {
   loadedRanges: new Set(),// 'YYYY' oder 'YYYY-MM', bereits vom Adapter geladen
   notes: [],
   checklists: [],
+  openChecklist: null,    // Checkliste, die im Checklisten-Tab geöffnet ist (sonst Übersicht aller Listen)
   editingChecklist: null, // Checkliste, die gerade in der Bearbeitungsansicht ist (Stift)
   focusTitle: null,       // Checkliste, deren Titelfeld nach dem Rendern den Fokus bekommt (neue Liste)
   focusChecklist: null,   // Checkliste, deren "Punkt hinzufügen"-Feld nach dem Rendern den Fokus bekommt

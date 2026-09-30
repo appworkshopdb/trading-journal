@@ -107,5 +107,7 @@ export function renderDayModal(root, state, actions) {
   root.onclick = (ev) => { if (ev.target === root) actions.closePopup(); };
   root.replaceChildren(form);
   root.classList.remove('hidden');
-  setTimeout(() => (gainVal || !lossVal ? gain : loss).focus(), 0);
+  // Kein Auto-Fokus: die Tastatur soll erst erscheinen, wenn ein Eingabefeld angetippt wird
+  form.tabIndex = -1;
+  form.focus({ preventScroll: true });
 }

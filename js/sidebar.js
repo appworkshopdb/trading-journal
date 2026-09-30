@@ -53,12 +53,28 @@ function noteEditor(note, actions) {
 // ======================= Checklisten =======================
 
 function checklistsPanel(state, actions) {
+  const open = state.checklists.find((c) => c.id === state.openChecklist);
+  if (open) {
+    return h('div', { class: 'panel checklists-panel' },
+      h('div', { class: 'panel-head' },
+        h('button', { class: 'text-btn', onClick: () => actions.openChecklist(null) }, '‹ Alle Listen')),
+      checklistCard(open, state, actions));
+  }
+  // Übersicht: alle Listen, Tippen öffnet die einzelne Liste
   return h('div', { class: 'panel checklists-panel' },
     h('div', { class: 'panel-head' },
       h('h2', { class: 'panel-title' }, 'Checklisten'),
       h('button', { class: 'primary small', onClick: () => actions.newChecklist() }, '+ Neue Liste')),
     state.checklists.length
-      ? state.checklists.map((cl) => checklistCard(cl, state, actions))
+      ? h('ul', { class: 'checklist-overview' }, state.checklists.map((cl) => {
+        const items = cl.items || [];
+        const done = items.filter((i) => i.done).length;
+        return h('li', {},
+          h('button', { class: 'checklist-row', onClick: () => actions.openChecklist(cl.id) },
+            h('span', { class: 'checklist-row-title' }, cl.title || 'Ohne Titel'),
+            h('span', { class: 'muted small' }, `${done}/${items.length}`),
+            h('span', { class: 'checklist-row-caret', 'aria-hidden': 'true' }, '›')));
+      }))
       : h('p', { class: 'muted' }, 'z.B. „Vor dem Trade", „Tagesroutine", „Wochenreview".'),
   );
 }
