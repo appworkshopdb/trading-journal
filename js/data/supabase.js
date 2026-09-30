@@ -18,9 +18,9 @@ export function createSupabaseAdapter(cfg) {
   const bucket = cfg.STORAGE_BUCKET || 'screenshots';
   let user = null;
   const now = () => new Date().toISOString();
-  const rowToDay = (r) => ({ ...r, pnl: r.pnl == null ? null : Number(r.pnl), tags: r.tags || [], images: r.images || [], fields: r.fields || [] });
+  const rowToDay = (r) => ({ ...r, pnl: r.pnl == null ? null : Number(r.pnl), tags: r.tags || [], images: r.images || [], fields: r.fields || {} });
 
-  const rowToMonth = (r) => ({ ...r, date: r.month, pnl: r.pnl == null ? null : Number(r.pnl), tags: [], images: r.images || [], fields: r.fields || [] });
+  const rowToMonth = (r) => ({ ...r, date: r.month, pnl: r.pnl == null ? null : Number(r.pnl), tags: [], images: r.images || [], fields: r.fields || {} });
 
   return {
     mode: 'supabase',
@@ -41,6 +41,16 @@ export function createSupabaseAdapter(cfg) {
     async changePassword(newPassword) {
       const { error } = await sb.auth.updateUser({ password: newPassword });
       if (error) throw error;
+    },
+    // Vorlage der Auswertungsfelder liegt am Benutzerkonto (user_metadata) -> auf allen Geräten gleich, keine eigene Tabelle nötig
+    async getFieldTemplate() {
+      const t = user?.user_metadata?.field_template;
+      return { left: t?.left || [], right: t?.right || [] };
+    },
+    async saveFieldTemplate(tpl) {
+      const { data, error } = await sb.auth.updateUser({ data: { field_template: tpl } });
+      if (error) throw error;
+      if (data?.user) user = data.user;
     },
     getAvatarPath() { return user?.user_metadata?.avatar_path || null; },
     async setAvatar(file) {
@@ -85,10 +95,10 @@ export function createSupabaseAdapter(cfg) {
     },
     async saveDay(day, market = 'BTC') {
       if (isMonthKey(day.date)) {
-        const mrow = { user_id: user.id, market, month: day.date, pnl: day.pnl, note: day.note || '', note_color: day.note_color || null, images: day.images || [], fields: day.fields || [], updated_at: now() };
+        const mrow = { user_id: user.id, market, month: day.date, pnl: day.pnl, note: day.note || '', note_color: day.note_color || null, images: day.images || [], fields: day.fields || {}, updated_at: now() };
         return rowToMonth(must(await sb.from('month_entries').upsert(mrow, { onConflict: 'user_id,market,month' }).select(MONTH_COLS).single()));
       }
-      const row = { user_id: user.id, market, date: day.date, pnl: day.pnl, note: day.note || '', note_color: day.note_color || null, tags: day.tags || [], images: day.images || [], fields: day.fields || [], updated_at: now() };
+      const row = { user_id: user.id, market, date: day.date, pnl: day.pnl, note: day.note || '', note_color: day.note_color || null, tags: day.tags || [], images: day.images || [], fields: day.fields || {}, updated_at: now() };
       const saved = must(await sb.from('day_entries').upsert(row, { onConflict: 'user_id,market,date' }).select(DAY_COLS).single());
       return rowToDay(saved);
     },
