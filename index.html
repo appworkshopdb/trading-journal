@@ -63,7 +63,13 @@
   </main>
 
   <!-- Login (nur im Supabase-Modus sichtbar) -->
-  <div id="authOverlay" class="overlay hidden">
+  <div id="authOverlay" class="overlay auth-screen hidden">
+    <canvas id="authBg" class="auth-bg" aria-hidden="true"></canvas>
+    <div class="auth-fade" aria-hidden="true"></div>
+    <div class="auth-top">
+      <div class="auth-brand">TRADING JOURNAL</div>
+      <div class="auth-tagline" id="authTagline">Jeder Trade erzählt eine Geschichte.</div>
+    </div>
     <form id="authForm" class="auth-card">
       <h2 id="authTitle">Anmelden</h2>
       <p class="muted" id="authHint">Melde dich mit deiner E-Mail und deinem Passwort an. Das ist nur einmal pro Gerät nötig.</p>
@@ -74,6 +80,9 @@
       <p id="authError" class="error"></p>
       <button type="button" class="text-btn" id="authSwitch">Noch kein Konto? Registrieren</button>
     </form>
+    <div class="auth-bottom">
+      <span>Disziplin</span><i></i><span>Klarheit</span><i></i><span>Konsequenz</span>
+    </div>
   </div>
 
   <!-- Tag-Popup: Gewinn, Verlust, Notiz, Farbe (Inhalt baut js/daymodal.js) -->
