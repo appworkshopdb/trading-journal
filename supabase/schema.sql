@@ -12,6 +12,7 @@
 create table if not exists public.day_entries (
   id          uuid primary key default gen_random_uuid(),
   user_id     uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  market      text not null default 'BTC',   -- Markt: BTC | GOLD (jeder Markt hat eigene Einträge)
   date        date not null,
   pnl         numeric(14,2),                 -- null = kein Ergebnis eingetragen
   note        text not null default '',
@@ -21,13 +22,14 @@ create table if not exists public.day_entries (
   fields      jsonb not null default '[]',   -- Auswertung des Tages: [{ "id": "...", "value": "...", "label": "..." }]
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now(),
-  unique (user_id, date)
+  unique (user_id, market, date)
 );
 
 -- Ein Eintrag pro Monat (Jahresansicht): eigene Notiz, Farbe, Bilder, Auswertung; pnl = optionaler Zuschlag zur Summe der Tage
 create table if not exists public.month_entries (
   id          uuid primary key default gen_random_uuid(),
   user_id     uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  market      text not null default 'BTC',
   month       text not null,                 -- 'YYYY-MM'
   pnl         numeric(14,2),
   note        text not null default '',
@@ -36,7 +38,7 @@ create table if not exists public.month_entries (
   fields      jsonb not null default '[]',
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now(),
-  unique (user_id, month)
+  unique (user_id, market, month)
 );
 
 -- Freie Notizen (Strategien, Regeln, Erkenntnisse)
@@ -66,6 +68,14 @@ create table if not exists public.checklists (
 alter table public.day_entries add column if not exists note_color text;
 alter table public.day_entries add column if not exists fields jsonb not null default '[]';
 alter table public.checklists  add column if not exists threshold integer not null default 85;
+
+-- Märkte (BTC/GOLD): bestehende Einträge gehören automatisch zu BTC
+alter table public.day_entries   add column if not exists market text not null default 'BTC';
+alter table public.month_entries add column if not exists market text not null default 'BTC';
+alter table public.day_entries   drop constraint if exists day_entries_user_id_date_key;
+alter table public.month_entries drop constraint if exists month_entries_user_id_month_key;
+create unique index if not exists day_entries_user_market_date_uq   on public.day_entries   (user_id, market, date);
+create unique index if not exists month_entries_user_market_month_uq on public.month_entries (user_id, market, month);
 
 create index if not exists day_entries_user_date_idx on public.day_entries (user_id, date);
 create index if not exists notes_user_updated_idx    on public.notes (user_id, updated_at desc);
