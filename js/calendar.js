@@ -19,9 +19,9 @@ function statTile(label, value, cls = '') {
     h('span', { class: `stat-value ${cls}` }, value));
 }
 
-function statsBar(title, st) {
+function statsBar(_title, st) {
   return h('div', { class: 'stats' },
-    statTile(title, st.traded ? fmtMoney(st.sum, CONFIG.CURRENCY) : '–', signClass(st.sum)),
+    statTile(st.traded && st.sum < 0 ? 'Verlust' : 'Profit', st.traded ? fmtMoney(st.sum, CONFIG.CURRENCY) : '–', signClass(st.sum)),
     statTile('Gewinntage', st.wins, 'pos'),
     statTile('Verlusttage', st.losses, 'neg'),
     statTile('Trefferquote', st.winRate == null ? '–' : Math.round(st.winRate * 100) + ' %'),
@@ -93,6 +93,12 @@ function yearView(state, actions) {
       ),
       e?.note?.trim() && h('div', { class: 'day-note', style: `--note:${noteColor(e.note_color).hex}` },
         h('span', { class: 'day-note-text' }, e.note)),
+      h('div', { class: 'mini-grid' }, monthGrid(y, m).flat().map((c) => {
+        const d = byDate[c.iso];
+        const dcls = ['mini-day', !c.inMonth && 'outside', c.iso === today && 'today',
+          d?.pnl != null && (d.pnl > 0 ? 'win' : d.pnl < 0 ? 'loss' : 'flat')].filter(Boolean).join(' ');
+        return h('span', { class: dcls, title: c.inMonth ? `${c.iso}${d?.pnl != null ? ' · ' + fmtMoney(d.pnl, CONFIG.CURRENCY) : ''}` : null });
+      })),
       h('div', { class: 'day-foot' },
         h('button', { class: 'day-open', title: 'Bilder und Auswertung öffnen', onClick: () => actions.openDetail(key) }, 'Öffnen')),
     );
