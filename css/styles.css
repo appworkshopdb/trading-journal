@@ -497,3 +497,8 @@ strong.ms-val { font-weight: 700; font-size: 18px; line-height: 1.2; }
 .pw-eye { font-size: 12px; font-weight: 600; color: var(--text-muted); padding: 0 6px; white-space: nowrap; }
 .pw-btns { display: flex; justify-content: flex-end; gap: 6px; padding: 4px 8px 6px; }
 .profile-note.err { color: var(--loss); }
+
+/* Feld löschen: größere Tippfläche, zweistufig */
+.field-del { align-self: stretch; min-width: 34px; padding: 0 8px; color: var(--text-muted); font-size: 16px; white-space: nowrap; opacity: 0.6; }
+.field-del:hover { opacity: 1; color: var(--loss); }
+.field-del.armed { opacity: 1; background: var(--loss); color: #fff; font-size: 12px; font-weight: 700; }
