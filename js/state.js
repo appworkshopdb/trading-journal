@@ -14,14 +14,18 @@ export const state = {
   year: now.getFullYear(),
   month: now.getMonth(),  // 0-basiert
   selectedDate: todayISO(),
+  popupDate: null,        // Tag, dessen Popup (Gewinn/Verlust/Notiz/Farbe) gerade offen ist
+  detailDate: null,       // Tag, dessen Detailbereich (Bilder + Felder) rechts offen ist
 
-  sideTab: 'day',         // 'day' | 'notes' | 'checklists'
+  sideTab: 'checklists',  // 'notes' | 'checklists'  (Standard: Checklisten)
   activeNoteId: null,     // geöffnete Notiz im Notizen-Tab
 
   days: {},               // 'YYYY-MM-DD' -> Tageseintrag (Cache)
   loadedRanges: new Set(),// 'YYYY' oder 'YYYY-MM', bereits vom Adapter geladen
   notes: [],
   checklists: [],
+  focusChecklist: null,   // Checkliste, deren "Punkt hinzufügen"-Feld nach dem Rendern den Fokus bekommt
+  focusField: null,       // Feld-ID im Detailbereich, die nach dem Rendern den Fokus bekommt
 
   saveStatus: '',         // Kurztext für die Statusleiste ('Gespeichert', 'Speichern…', Fehler)
 };

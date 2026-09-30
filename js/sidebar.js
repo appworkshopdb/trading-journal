@@ -1,90 +1,17 @@
-// Rechte Seite: Tabs "Tag" (Editor für den ausgewählten Kalendertag), "Notizen", "Checklisten".
+// Rechte Seite: Tabs "Checklisten" (Standard) und "Notizen". Öffnet der Nutzer über "Öffnen" in einer
+// Kalenderzelle den Detailbereich eines Tages (js/detail.js), ersetzt dieser die Tabs.
 // Texteingaben werden entprellt gespeichert, OHNE die Seitenleiste neu zu rendern (sonst verliert
-// das Eingabefeld den Fokus). Nur der Kalender wird bei PnL-/Notiz-Änderung aktualisiert.
+// das Eingabefeld den Fokus).
 
-import { h, fromISO, fmtMoney, signClass, uid, debounce } from './utils.js';
-import { CONFIG } from '../config.js';
-
-const imageUrlCache = new Map(); // path -> URL (Supabase: signierte URL, 1h gültig)
+import { h, uid, debounce } from './utils.js';
+import { detailPanel } from './detail.js';
 
 export function renderSidebar(root, tabsEl, state, actions) {
+  const inDetail = !!state.detailDate;
+  tabsEl.classList.toggle('hidden', inDetail);
   for (const b of tabsEl.querySelectorAll('button')) b.classList.toggle('active', b.dataset.tab === state.sideTab);
-  const view = { day: dayPanel, notes: notesPanel, checklists: checklistsPanel }[state.sideTab];
+  const view = inDetail ? detailPanel : ({ notes: notesPanel, checklists: checklistsPanel }[state.sideTab] || checklistsPanel);
   root.replaceChildren(view(state, actions));
-}
-
-// ======================= Tag =======================
-
-function emptyDay(iso) { return { date: iso, pnl: null, note: '', tags: [], images: [] }; }
-
-function dayPanel(state, actions) {
-  const iso = state.selectedDate;
-  const entry = state.days[iso] || emptyDay(iso);
-  const d = fromISO(iso);
-  const title = d.toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-
-  // Patches sammeln und gebündelt entprellt speichern (sonst überschreibt ein schneller Feldwechsel den vorigen Patch)
-  let pending = {};
-  const flush = debounce(() => { const p = pending; pending = {}; actions.updateDay(iso, p); }, 500);
-  const saveDebounced = (patch) => { Object.assign(pending, patch); flush(); };
-
-  const pnlInput = h('input', {
-    type: 'number', step: '0.01', inputmode: 'decimal', placeholder: '0,00',
-    class: `pnl-input ${signClass(entry.pnl)}`, value: entry.pnl ?? '',
-    onInput: (ev) => {
-      const v = ev.target.value;
-      const pnl = v === '' ? null : Number(v);
-      ev.target.className = `pnl-input ${signClass(pnl)}`;
-      saveDebounced({ pnl });
-    },
-  });
-
-  const noteArea = h('textarea', {
-    class: 'note-area', placeholder: 'Was ist heute passiert? Setup, Fehler, Erkenntnisse …',
-    rows: 8, onInput: (ev) => saveDebounced({ note: ev.target.value }),
-  });
-  noteArea.value = entry.note || '';
-
-  const tagsInput = h('input', {
-    type: 'text', class: 'tags-input', placeholder: 'Tags, durch Komma getrennt (z.B. Breakout, Overtrading)',
-    value: (entry.tags || []).join(', '),
-    onInput: (ev) => saveDebounced({ tags: ev.target.value.split(',').map((t) => t.trim()).filter(Boolean) }),
-  });
-
-  const fileInput = h('input', { type: 'file', accept: 'image/*', multiple: true, class: 'hidden',
-    onChange: async (ev) => { await actions.addImages(iso, [...ev.target.files]); ev.target.value = ''; } });
-
-  return h('div', { class: 'panel day-panel' },
-    h('h2', { class: 'panel-title' }, title),
-    h('label', { class: 'field' }, h('span', {}, `Gewinn / Verlust (${CONFIG.CURRENCY})`), pnlInput),
-    h('label', { class: 'field' }, h('span', {}, 'Notiz'), noteArea),
-    h('label', { class: 'field' }, h('span', {}, 'Tags'), tagsInput),
-    h('div', { class: 'field' },
-      h('div', { class: 'field-head' },
-        h('span', {}, `Screenshots (${entry.images?.length || 0})`),
-        h('button', { class: 'text-btn', onClick: () => fileInput.click() }, '+ Bild hochladen'),
-        fileInput),
-      imageGrid(entry, iso, actions),
-    ),
-    h('div', { class: 'panel-footer' },
-      h('button', { class: 'text-btn danger', onClick: () => { if (confirm('Alle Einträge dieses Tages löschen?')) actions.clearDay(iso); } }, 'Tag leeren'),
-    ),
-  );
-}
-
-function imageGrid(entry, iso, actions) {
-  const imgs = entry.images || [];
-  if (!imgs.length) return h('p', { class: 'muted small' }, 'Noch keine Bilder.');
-  return h('div', { class: 'image-grid' }, imgs.map((img) => {
-    const el = h('img', { alt: img.name || 'Screenshot', loading: 'lazy' });
-    const cached = imageUrlCache.get(img.path);
-    if (cached) el.src = cached;
-    else actions.imageUrl(img.path).then((url) => { imageUrlCache.set(img.path, url); el.src = url; }).catch(() => el.classList.add('broken'));
-    return h('figure', { class: 'thumb' },
-      h('button', { class: 'thumb-open', onClick: () => actions.openLightbox(el.src) }, el),
-      h('button', { class: 'thumb-del', title: 'Bild löschen', onClick: () => { if (confirm('Bild löschen?')) actions.removeImage(iso, img); } }, '×'),
-    );
-  }));
 }
 
 // ======================= Notizen =======================
@@ -141,12 +68,17 @@ function checklistCard(cl, state, actions) {
   const done = items.filter((i) => i.done).length;
   const titleSave = debounce(() => actions.updateChecklist(cl.id, {}), 500); // cl ist das State-Objekt
 
-  const addInput = h('input', { type: 'text', class: 'add-item', placeholder: '+ Punkt hinzufügen (Enter)',
-    onKeydown: (ev) => {
-      if (ev.key !== 'Enter' || !ev.target.value.trim()) return;
-      actions.updateChecklist(cl.id, { items: [...items, { id: uid(), text: ev.target.value.trim(), done: false }] }, true, cl.id);
-    } });
-  if (state.focusChecklist === cl.id) setTimeout(() => addInput.focus(), 0);
+  // Neuer Punkt: Text + optionaler Infotext; Enter in einem der beiden Felder fügt hinzu
+  const addItem = () => {
+    const text = pointInput.value.trim();
+    if (!text) { pointInput.focus(); return; }
+    const info = infoInput.value.trim();
+    actions.updateChecklist(cl.id, { items: [...items, { id: uid(), text, info, done: false }] }, true, cl.id);
+  };
+  const onEnter = (ev) => { if (ev.key === 'Enter') addItem(); };
+  const pointInput = h('input', { type: 'text', class: 'add-item add-point', placeholder: '+ Punkt hinzufügen', 'aria-label': 'Neuer Punkt', onKeydown: onEnter });
+  const infoInput = h('input', { type: 'text', class: 'add-item add-info', placeholder: 'Infotext (optional) – Enter', 'aria-label': 'Infotext zum Punkt', onKeydown: onEnter });
+  if (state.focusChecklist === cl.id) setTimeout(() => pointInput.focus(), 0);
 
   return h('section', { class: 'checklist' },
     h('div', { class: 'checklist-head' },
@@ -158,9 +90,11 @@ function checklistCard(cl, state, actions) {
     h('ul', { class: 'check-items' }, items.map((it) => h('li', { class: it.done ? 'done' : '' },
       h('label', {},
         h('input', { type: 'checkbox', checked: it.done, onChange: (ev) => actions.updateChecklist(cl.id, { items: items.map((i) => i.id === it.id ? { ...i, done: ev.target.checked } : i) }, true) }),
-        h('span', {}, it.text)),
+        h('span', { class: 'item-body' },
+          h('span', { class: 'item-text' }, it.text),
+          it.info && h('span', { class: 'item-info' }, it.info))),
       h('button', { class: 'item-del', title: 'Entfernen', onClick: () => actions.updateChecklist(cl.id, { items: items.filter((i) => i.id !== it.id) }, true) }, '×'),
     ))),
-    addInput,
+    h('div', { class: 'add-row' }, pointInput, infoInput),
   );
 }

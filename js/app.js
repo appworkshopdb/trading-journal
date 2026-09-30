@@ -4,6 +4,7 @@ import { state, setState, subscribe } from './state.js';
 import { createAdapter } from './data/index.js';
 import { renderCalendar } from './calendar.js';
 import { renderSidebar } from './sidebar.js';
+import { renderDayModal } from './daymodal.js';
 import { initSplitter } from './splitter.js';
 import { MONTHS, todayISO, uid } from './utils.js';
 
@@ -46,13 +47,20 @@ async function persist(work) {
   catch (e) { console.error(e); setStatus('Fehler: ' + (e.message || e), true); throw e; }
 }
 
-const isEmptyDay = (d) => d.pnl == null && !(d.note || '').trim() && !(d.tags || []).length && !(d.images || []).length;
+const isEmptyDay = (d) => d.pnl == null && !(d.note || '').trim() && !(d.tags || []).length && !(d.images || []).length && !(d.fields || []).length;
 
 // ---------------------------------------------------------------- Aktionen (werden an die Renderer gereicht)
 
 const actions = {
   // Navigation
-  selectDay(iso) { setState({ selectedDate: iso, sideTab: 'day' }); },
+  // Tag antippen -> Popup (Gewinn/Verlust/Notiz/Farbe); "Öffnen" in der Zelle -> Detailbereich rechts
+  openPopup(iso) { setState({ selectedDate: iso, popupDate: iso }, ['calendar', 'modal']); },
+  closePopup() { setState({ popupDate: null }, ['modal']); },
+  async savePopup(iso, patch) { actions.closePopup(); await actions.updateDay(iso, patch); },
+  async clearPopup(iso) { actions.closePopup(); await actions.clearDay(iso); },
+  openDetail(iso) { setState({ selectedDate: iso, detailDate: iso, popupDate: null }); },
+  closeDetail() { setState({ detailDate: null }); },
+  refreshSidebar(focusField = null) { setState({ focusField }, ['sidebar']); },
   openMonth(y, m) { setState({ view: 'month', year: y, month: m }); },
   async setView(view) { setState({ view }); },
   async setYear(year) { await ensureYear(year); setState({ year }); },
@@ -68,11 +76,11 @@ const actions = {
     await ensureYear(t.getFullYear());
     setState({ year: t.getFullYear(), month: t.getMonth(), selectedDate: todayISO() });
   },
-  setSideTab(tab) { setState({ sideTab: tab }); },
+  setSideTab(tab) { setState({ sideTab: tab, detailDate: null }); },
 
   // Tage
   async updateDay(iso, patch) {
-    const merged = { date: iso, pnl: null, note: '', tags: [], images: [], ...(state.days[iso] || {}), ...patch };
+    const merged = { date: iso, pnl: null, note: '', note_color: null, tags: [], images: [], fields: [], ...(state.days[iso] || {}), ...patch };
     if (isEmptyDay(merged)) {
       delete state.days[iso];
       setState({}, ['calendar']);
@@ -93,7 +101,7 @@ const actions = {
     setState({});
   },
   async addImages(iso, files) {
-    const entry = state.days[iso] || { date: iso, pnl: null, note: '', tags: [], images: [] };
+    const entry = state.days[iso] || { date: iso, pnl: null, note: '', note_color: null, tags: [], images: [], fields: [] };
     const uploaded = [];
     await persist(async () => { for (const f of files) uploaded.push(await db.uploadImage(iso, f)); });
     const merged = { ...entry, images: [...(entry.images || []), ...uploaded] };
@@ -202,8 +210,8 @@ function bindTopbar() {
   for (const b of document.querySelectorAll('#sideTabs button')) b.onclick = () => actions.setSideTab(b.dataset.tab);
   $('lightbox').onclick = () => $('lightbox').classList.add('hidden');
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') $('lightbox').classList.add('hidden');
-    if (e.target.matches('input, textarea, select')) return;
+    if (e.key === 'Escape') { $('lightbox').classList.add('hidden'); if (state.popupDate) actions.closePopup(); }
+    if (state.popupDate || e.target.matches('input, textarea, select')) return;
     if (e.key === 'ArrowLeft') actions.step(-1);
     if (e.key === 'ArrowRight') actions.step(1);
   });
@@ -230,6 +238,7 @@ function render(_s, parts) {
   if (all || parts.includes('topbar')) renderTopbar();
   if (all || parts.includes('calendar')) renderCalendar($('calendarPane'), state, actions);
   if (all || parts.includes('sidebar')) renderSidebar($('sideContent'), $('sideTabs'), state, actions);
+  if (all || parts.includes('modal')) renderDayModal($('dayModal'), state, actions);
 }
 
 async function main() {

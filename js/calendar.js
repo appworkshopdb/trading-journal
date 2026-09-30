@@ -1,7 +1,7 @@
 // Kalender: Monatsansicht (Wochenzeilen × 7 Tage) und Jahresansicht (4 × 3 Monate).
 // Reines Rendering – Datenzugriff und Navigation laufen über `actions` (siehe app.js).
 
-import { h, MONTHS, MONTHS_SHORT, WEEKDAYS, monthGrid, monthPrefix, fmtMoney, fmtCompact, signClass, periodStats, todayISO, escapeHtml } from './utils.js';
+import { h, MONTHS, MONTHS_SHORT, WEEKDAYS, monthGrid, monthPrefix, fmtMoney, fmtCompact, signClass, periodStats, todayISO, escapeHtml, noteColor } from './utils.js';
 import { CONFIG } from '../config.js';
 
 export function renderCalendar(root, state, actions) {
@@ -46,13 +46,18 @@ function monthView(state, actions) {
       e?.pnl != null && (e.pnl > 0 ? 'win' : e.pnl < 0 ? 'loss' : 'flat'),
     ].filter(Boolean).join(' ');
 
-    return h('button', { class: cls, dataset: { date: c.iso }, onClick: () => actions.selectDay(c.iso) },
+    // Die Zelle ist ein <div>: ein transparenter Button darüber öffnet das Popup, "Öffnen" den Detailbereich
+    // (verschachtelte Buttons wären ungültiges HTML).
+    const label = c.date.toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' });
+    return h('div', { class: cls, dataset: { date: c.iso } },
+      h('button', { class: 'day-hit', 'aria-label': `${label} bearbeiten`, onClick: () => actions.openPopup(c.iso) }),
       h('span', { class: 'day-num' }, c.date.getDate()),
-      e?.pnl != null && h('span', { class: 'day-pnl', title: fmtMoney(e.pnl, CONFIG.CURRENCY) }, fmtCompact(e.pnl)),
-      h('span', { class: 'day-marks' },
-        e?.note && h('i', { class: 'mark mark-note', title: 'Notiz vorhanden' }),
-        e?.images?.length ? h('i', { class: 'mark mark-img', title: `${e.images.length} Bild(er)` }, e.images.length) : null,
-      ),
+      e?.images?.length ? h('span', { class: 'day-marks' }, h('i', { class: 'mark mark-img', title: `${e.images.length} Bild(er)` }, e.images.length)) : null,
+      e?.note?.trim() && h('div', { class: 'day-note', style: `--note:${noteColor(e.note_color).hex}` },
+        h('span', { class: 'day-note-text' }, e.note)),
+      h('div', { class: 'day-foot' },
+        h('span', { class: 'day-pnl', title: e?.pnl != null ? fmtMoney(e.pnl, CONFIG.CURRENCY) : null }, e?.pnl != null ? fmtCompact(e.pnl) : ''),
+        c.inMonth && h('button', { class: 'day-open', title: 'Bilder und Auswertung öffnen', onClick: () => actions.openDetail(c.iso) }, 'Öffnen')),
     );
   });
 

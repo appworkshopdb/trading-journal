@@ -5,6 +5,17 @@ export const MONTHS = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
 export const MONTHS_SHORT = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
 export const WEEKDAYS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
 
+/** Farben für die Tages-Notiz (Leiste im Kalender). Bewusst ohne Grün/Rot – die sind Gewinn/Verlust vorbehalten. */
+export const NOTE_COLORS = [
+  { id: 'blau',   name: 'Blau',   hex: '#2962ff' },
+  { id: 'orange', name: 'Orange', hex: '#ff9800' },
+  { id: 'lila',   name: 'Lila',   hex: '#9c27b0' },
+  { id: 'gelb',   name: 'Gelb',   hex: '#fdd835' },
+  { id: 'pink',   name: 'Pink',   hex: '#e040fb' },
+  { id: 'grau',   name: 'Grau',   hex: '#787b86' },
+];
+export const noteColor = (id) => NOTE_COLORS.find((c) => c.id === id) || NOTE_COLORS[NOTE_COLORS.length - 1];
+
 export const pad2 = (n) => String(n).padStart(2, '0');
 
 /** Date -> 'YYYY-MM-DD' (lokale Zeit, keine UTC-Verschiebung) */
