@@ -3,7 +3,7 @@
 // Die Bibliothek kommt per ESM-CDN – kein Build-Schritt nötig.
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { uid, isMonthKey } from '../utils.js';
+import { uid, isMonthKey, squareCanvas } from '../utils.js';
 
 const DAY_COLS = 'date, pnl, note, note_color, tags, images, fields, updated_at';
 const MONTH_COLS = 'month, pnl, note, note_color, images, fields, updated_at';
@@ -36,6 +36,42 @@ export function createSupabaseAdapter(cfg) {
     async signIn(email, password) {
       const { error } = await sb.auth.signInWithPassword({ email, password });
       if (error) throw error;
+    },
+    // ---- Profil ----
+    async changePassword(newPassword) {
+      const { error } = await sb.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+    },
+    getAvatarPath() { return user?.user_metadata?.avatar_path || null; },
+    async setAvatar(file) {
+      const canvas = await squareCanvas(file, 256);
+      const blob = await new Promise((res) => canvas.toBlob(res, 'image/jpeg', 0.85));
+      const old = user?.user_metadata?.avatar_path;
+      const path = `${user.id}/profile/avatar-${Date.now()}.jpg`;
+      must(await sb.storage.from(bucket).upload(path, blob, { contentType: 'image/jpeg', upsert: false }));
+      const { data, error } = await sb.auth.updateUser({ data: { avatar_path: path } }); // Pfad liegt am Benutzerkonto -> auf allen Geräten gleich
+      if (error) throw error;
+      if (data?.user) user = data.user;
+      if (old) await sb.storage.from(bucket).remove([old]).catch(() => {});
+      return path;
+    },
+    async removeAvatar() {
+      const old = user?.user_metadata?.avatar_path;
+      const { data, error } = await sb.auth.updateUser({ data: { avatar_path: null } });
+      if (error) throw error;
+      if (data?.user) user = data.user;
+      if (old) await sb.storage.from(bucket).remove([old]).catch(() => {});
+    },
+    // ---- Speicheranzeige (SQL-Funktion usage_stats, siehe schema.sql) ----
+    async getUsage() {
+      const r = must(await sb.rpc('usage_stats'));
+      return {
+        images: Number(r.images) || 0,
+        bytes: Number(r.bytes) || 0,
+        dbBytes: Number(r.db_bytes) || 0,
+        limitBytes: (cfg.STORAGE_LIMIT_MB ?? 1024) * 1048576, // Free-Plan: 1 GB Storage
+        dbLimitBytes: (cfg.DB_LIMIT_MB ?? 500) * 1048576,     // Free-Plan: 500 MB Datenbank
+      };
     },
     getUserInfo() { return user ? { email: user.email || '', id: user.id } : null; },
     async signOut() { await sb.auth.signOut(); },

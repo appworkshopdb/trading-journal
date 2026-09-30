@@ -37,6 +37,25 @@ export function createLocalAdapter() {
     async init() { return { id: 'local', email: 'Lokal (nur dieses Gerät)' }; },
     onAuthChange() {},
     async signIn() {},
+    getAvatarPath() { try { return localStorage.getItem('tj.avatar'); } catch { return null; } },
+    async setAvatar(file) {
+      const { squareCanvas } = await import('../utils.js');
+      const url = (await squareCanvas(file, 256)).toDataURL('image/jpeg', 0.85);
+      localStorage.setItem('tj.avatar', url);
+      return url;
+    },
+    async removeAvatar() { localStorage.removeItem('tj.avatar'); },
+    async changePassword() { throw new Error('Im lokalen Modus gibt es kein Passwort.'); },
+    async getUsage() {
+      let images = 0, bytes = 0;
+      for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k?.startsWith('tj.')) bytes += (localStorage.getItem(k) || '').length; }
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (!k?.startsWith('tj.days')) continue;
+        for (const d of Object.values(read(k, {}))) images += (d.images || []).length;
+      }
+      return { images, bytes, limitBytes: 5 * 1048576, dbBytes: null, dbLimitBytes: null, local: true }; // Browser-Speicher: meist ca. 5 MB
+    },
     getUserInfo() { return { email: 'Lokal (nur dieses Gerät)', id: 'local' }; },
     async signOut() {},
 

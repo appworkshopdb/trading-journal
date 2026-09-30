@@ -8,6 +8,11 @@
 //   signIn(email, password)      -> Promise<void>          wirft Error bei Fehler
 //   signOut()                    -> Promise<void>
 //   getUserInfo()                -> { email, id } | null   für das Profilmenü
+//   changePassword(pw)           -> Promise<void>          Passwort ändern (nur Supabase)
+//   getAvatarPath()              -> string|null            Profilbild-Pfad (Supabase: im Benutzerkonto, lokal: Data-URL)
+//   setAvatar(file)              -> Promise<string>        Profilbild quadratisch zuschneiden + speichern
+//   removeAvatar()               -> Promise<void>
+//   getUsage()                   -> Promise<{images, bytes, limitBytes, dbBytes, dbLimitBytes}>  Speicheranzeige
 //
 //   getDays(fromISO, toISO, market) -> Promise<DayEntry[]>  (Tage 'YYYY-MM-DD' und Monate 'YYYY-MM')
 //   saveDay(dayEntry, market)    -> Promise<DayEntry>      Upsert nach (user, market, date)
