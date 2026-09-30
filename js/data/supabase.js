@@ -37,27 +37,28 @@ export function createSupabaseAdapter(cfg) {
       const { error } = await sb.auth.signInWithPassword({ email, password });
       if (error) throw error;
     },
+    getUserInfo() { return user ? { email: user.email || '', id: user.id } : null; },
     async signOut() { await sb.auth.signOut(); },
 
     // ---- Tage ----
-    async getDays(from, to) {
-      const rows = must(await sb.from('day_entries').select(DAY_COLS).gte('date', from).lte('date', to).order('date'));
+    async getDays(from, to, market = 'BTC') {
+      const rows = must(await sb.from('day_entries').select(DAY_COLS).eq('market', market).gte('date', from).lte('date', to).order('date'));
       // Monatseinträge ('YYYY-MM') kommen aus eigener Tabelle und werden mit date = 'YYYY-MM' mitgeliefert
-      const months = must(await sb.from('month_entries').select(MONTH_COLS).gte('month', from.slice(0, 7)).lte('month', to.slice(0, 7)).order('month'));
+      const months = must(await sb.from('month_entries').select(MONTH_COLS).eq('market', market).gte('month', from.slice(0, 7)).lte('month', to.slice(0, 7)).order('month'));
       return [...rows.map(rowToDay), ...months.map(rowToMonth)];
     },
-    async saveDay(day) {
+    async saveDay(day, market = 'BTC') {
       if (isMonthKey(day.date)) {
-        const mrow = { user_id: user.id, month: day.date, pnl: day.pnl, note: day.note || '', note_color: day.note_color || null, images: day.images || [], fields: day.fields || [], updated_at: now() };
-        return rowToMonth(must(await sb.from('month_entries').upsert(mrow, { onConflict: 'user_id,month' }).select(MONTH_COLS).single()));
+        const mrow = { user_id: user.id, market, month: day.date, pnl: day.pnl, note: day.note || '', note_color: day.note_color || null, images: day.images || [], fields: day.fields || [], updated_at: now() };
+        return rowToMonth(must(await sb.from('month_entries').upsert(mrow, { onConflict: 'user_id,market,month' }).select(MONTH_COLS).single()));
       }
-      const row = { user_id: user.id, date: day.date, pnl: day.pnl, note: day.note || '', note_color: day.note_color || null, tags: day.tags || [], images: day.images || [], fields: day.fields || [], updated_at: now() };
-      const saved = must(await sb.from('day_entries').upsert(row, { onConflict: 'user_id,date' }).select(DAY_COLS).single());
+      const row = { user_id: user.id, market, date: day.date, pnl: day.pnl, note: day.note || '', note_color: day.note_color || null, tags: day.tags || [], images: day.images || [], fields: day.fields || [], updated_at: now() };
+      const saved = must(await sb.from('day_entries').upsert(row, { onConflict: 'user_id,market,date' }).select(DAY_COLS).single());
       return rowToDay(saved);
     },
-    async deleteDay(iso) {
-      if (isMonthKey(iso)) { must(await sb.from('month_entries').delete().eq('user_id', user.id).eq('month', iso)); return; }
-      must(await sb.from('day_entries').delete().eq('user_id', user.id).eq('date', iso));
+    async deleteDay(iso, market = 'BTC') {
+      if (isMonthKey(iso)) { must(await sb.from('month_entries').delete().eq('user_id', user.id).eq('market', market).eq('month', iso)); return; }
+      must(await sb.from('day_entries').delete().eq('user_id', user.id).eq('market', market).eq('date', iso));
     },
 
     // ---- Notizen ----
@@ -81,9 +82,9 @@ export function createSupabaseAdapter(cfg) {
     async deleteChecklist(id) { must(await sb.from('checklists').delete().eq('id', id)); },
 
     // ---- Bilder (Storage) ----
-    async uploadImage(iso, file) {
+    async uploadImage(iso, file, market = 'BTC') {
       const safe = file.name.replace(/[^\w.\-]+/g, '_');
-      const path = `${user.id}/${iso}/${Date.now()}-${safe}`; // Ordner = user_id -> Storage-Policy greift
+      const path = `${user.id}/${market}/${iso}/${Date.now()}-${safe}`; // Ordner = user_id -> Storage-Policy greift
       must(await sb.storage.from(bucket).upload(path, file, { upsert: false, contentType: file.type }));
       return { id: uid(), path, name: file.name };
     },

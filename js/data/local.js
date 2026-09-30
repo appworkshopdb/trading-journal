@@ -4,6 +4,8 @@
 
 import { uid } from '../utils.js';
 
+// BTC bleibt unter dem alten Schlüssel (bestehende Daten), weitere Märkte bekommen ein Suffix
+const daysKey = (market) => (!market || market === 'BTC' ? 'tj.days' : `tj.days.${market}`);
 const KEYS = { days: 'tj.days', notes: 'tj.notes', checklists: 'tj.checklists' };
 
 const read = (k, fallback) => { try { return JSON.parse(localStorage.getItem(k)) ?? fallback; } catch { return fallback; } };
@@ -35,21 +37,22 @@ export function createLocalAdapter() {
     async init() { return { id: 'local', email: 'Lokal (nur dieses Gerät)' }; },
     onAuthChange() {},
     async signIn() {},
+    getUserInfo() { return { email: 'Lokal (nur dieses Gerät)', id: 'local' }; },
     async signOut() {},
 
-    async getDays(from, to) {
-      return Object.values(read(KEYS.days, {})).filter((d) => d.date >= from && d.date <= to);
+    async getDays(from, to, market) {
+      return Object.values(read(daysKey(market), {})).filter((d) => d.date >= from && d.date <= to);
     },
-    async saveDay(day) {
-      const all = read(KEYS.days, {});
+    async saveDay(day, market) {
+      const all = read(daysKey(market), {});
       all[day.date] = stamp(day);
-      write(KEYS.days, all);
+      write(daysKey(market), all);
       return all[day.date];
     },
-    async deleteDay(iso) {
-      const all = read(KEYS.days, {});
+    async deleteDay(iso, market) {
+      const all = read(daysKey(market), {});
       delete all[iso];
-      write(KEYS.days, all);
+      write(daysKey(market), all);
     },
 
     async listNotes() { return read(KEYS.notes, []); },

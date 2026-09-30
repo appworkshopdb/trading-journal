@@ -7,10 +7,11 @@
 //   onAuthChange(cb)             -> void                   cb(user|null) bei Login/Logout
 //   signIn(email, password)      -> Promise<void>          wirft Error bei Fehler
 //   signOut()                    -> Promise<void>
+//   getUserInfo()                -> { email, id } | null   für das Profilmenü
 //
-//   getDays(fromISO, toISO)      -> Promise<DayEntry[]>
-//   saveDay(dayEntry)            -> Promise<DayEntry>      Upsert nach (user, date)
-//   deleteDay(iso)               -> Promise<void>
+//   getDays(fromISO, toISO, market) -> Promise<DayEntry[]>  (Tage 'YYYY-MM-DD' und Monate 'YYYY-MM')
+//   saveDay(dayEntry, market)    -> Promise<DayEntry>      Upsert nach (user, market, date)
+//   deleteDay(iso, market)       -> Promise<void>
 //
 //   listNotes()                  -> Promise<Note[]>
 //   saveNote(note)               -> Promise<Note>          Upsert nach id
@@ -20,7 +21,7 @@
 //   saveChecklist(cl)            -> Promise<Checklist>     Upsert nach id
 //   deleteChecklist(id)          -> Promise<void>
 //
-//   uploadImage(iso, file)       -> Promise<{id, path, name}>
+//   uploadImage(iso, file, market) -> Promise<{id, path, name}>
 //   imageUrl(path)               -> Promise<string>        anzeigbare URL (Supabase: signierte URL)
 //   deleteImage(path)            -> Promise<void>
 //
