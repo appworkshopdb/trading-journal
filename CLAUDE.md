@@ -34,7 +34,9 @@ trading-journal/
 │   ├── state.js            Zentraler Zustand + setState()/subscribe()
 │   ├── utils.js            Datum, Formatierung (fmtMoney/fmtCompact), monthGrid(), periodStats(), DOM-Builder h()
 │   ├── calendar.js         Monatsansicht + Jahresansicht (inkl. Balkendiagramm als Inline-SVG)
-│   ├── sidebar.js          Tabs: Tag-Editor (PnL/Notiz/Tags/Bilder), Notizen, Checklisten
+│   ├── sidebar.js          Tabs Checklisten (Standard) + Notizen; zeigt im Detail-Modus js/detail.js statt der Tabs
+│   ├── daymodal.js         Popup am Kalendertag: Gewinn, Verlust, Notiz, Notizfarbe
+│   ├── detail.js           Detailbereich eines Tages: Screenshots (3 pro Zeile) + Auswertungs-Felder in 2 Spalten
 │   ├── splitter.js         Verschiebbare Trennlinie (CSS-Variable --split, in localStorage gemerkt)
 │   └── data/
 │       ├── index.js        createAdapter(): wählt lokal oder Supabase; enthält den ADAPTER-VERTRAG
@@ -67,13 +69,13 @@ UI-Ereignis ──► actions.xyz() ──► state mutieren + db.save…() ─�
 * **`state`** (`js/state.js`) ist die einzige Wahrheit. `state.days` ist ein Cache `'YYYY-MM-DD' → Tageseintrag`;
   geladen wird **immer ein ganzes Jahr** auf einmal (`ensureYear()` in `app.js`, gemerkt in `state.loadedRanges`).
 * **`setState(patch, parts)`**: ohne `parts` wird alles neu gerendert; `['calendar']` nur der Kalender,
-  `['sidebar']` nur die Seitenleiste. Wichtig bei Texteingaben: der Tag-Editor speichert entprellt (500 ms)
-  und rendert nur den Kalender neu, damit das Eingabefeld den Fokus behält.
+  `['sidebar']` nur die Seitenleiste, `['modal']` nur das Tag-Popup. Wichtig bei Texteingaben: der Detailbereich
+  speichert entprellt (500 ms) und rendert die Seitenleiste nicht neu, damit das Eingabefeld den Fokus behält.
 * **`actions`** (in `app.js`) ist das API der UI: Navigation (`step`, `setYear`, `openMonth`, `goToday`, …),
-  Tage (`updateDay`, `clearDay`, `addImages`, `removeImage`), Notizen, Checklisten. Renderer bekommen
+  Tage (`openPopup`/`savePopup`/`closePopup`, `openDetail`/`closeDetail`, `updateDay`, `clearDay`, `addImages`, `removeImage`), Notizen, Checklisten. Renderer bekommen
   `(root, state, actions)` und rufen nur `actions.*` – nie `db` direkt.
 * **`persist(fn)`** kapselt jeden Schreibzugriff und zeigt „Speichern … / Gespeichert ✓ / Fehler" in der Topbar.
-* **Leerer Tag** (kein PnL, keine Notiz, keine Tags, keine Bilder) wird automatisch gelöscht statt gespeichert.
+* **Leerer Tag** (kein PnL, keine Notiz, keine Tags, keine Bilder, keine Felder) wird automatisch gelöscht statt gespeichert.
 
 ---
 
@@ -81,11 +83,18 @@ UI-Ereignis ──► actions.xyz() ──► state mutieren + db.save…() ─�
 
 * **Layout:** Topbar (52 px) + Workspace als CSS-Grid `--split | 10px | 1fr`. Splitter zwischen 25 % und 75 %,
   Doppelklick = 50 %.
-* **Kalender links, Seitenleiste rechts.** Seitenleiste hat drei Tabs: `Tag` (Editor des in `state.selectedDate`
-  gewählten Tages), `Notizen`, `Checklisten`. Klick auf einen Kalendertag wählt ihn aus **und** springt in den Tab `Tag`.
+* **Kalender links, Seitenleiste rechts.** Seitenleiste hat zwei Tabs: `Checklisten` (Standard beim Start) und `Notizen`.
+  Zwei getrennte Wege zum Tag:
+  1. **Kalenderzelle antippen** → Popup (`js/daymodal.js`, `state.popupDate`) mit Gewinn, Verlust, Notiz und Notizfarbe (Dropdown).
+     Gewinn und Verlust ergeben zusammen `pnl` (Gewinn − Verlust). Die Notiz erscheint lesbar in der Zelle, die Farbe als Leiste links daneben.
+  2. **„Öffnen" in der Zelle** → Detailbereich rechts (`js/detail.js`, `state.detailDate`), ersetzt die Tabs (Button „‹ Zurück"):
+     oben Screenshots (bis 3 nebeneinander, dann neue Zeile), darunter „Auswertung des Tages" = frei anlegbare Felder
+     (kurzer Wert + Bezeichnung) in 2 Spalten, Button „+ neues Feld".
+* **Notizfarben** (`NOTE_COLORS` in `utils.js`): Blau, Orange, Lila, Gelb, Pink, Grau – bewusst ohne Grün/Rot (Gewinn/Verlust).
 * **Monatsansicht:** 7 Spalten (Mo–So), so viele Wochenzeilen wie der Monat braucht (4–6). Zellen füllen die
   verfügbare Höhe (`flex: 1` + `grid-template-rows: repeat(var(--rows), 1fr)`). Zelle zeigt Tagesnummer,
-  PnL (grün/rot/grau) und Marker für Notiz (Punkt) / Bilder (Anzahl).
+  Notiztext mit Farbleiste, PnL (grün/rot/grau), Bilder-Anzahl und den Button „Öffnen". Die Zelle ist ein `<div>`
+  mit transparentem Button darüber (`.day-hit`), weil „Öffnen" ein eigener Button ist (keine verschachtelten Buttons).
 * **Jahresansicht:** Statistik-Kacheln, Balkendiagramm der 12 Monate, dann 4 × 3 Mini-Monate. Klick auf einen
   Mini-Monat öffnet die Monatsansicht.
 * **Navigation:** `‹ ›` blättern Monat (Monatsansicht) bzw. Jahr (Jahresansicht). Jahr-Dropdown wirkt in beiden
@@ -104,9 +113,10 @@ UI-Ereignis ──► actions.xyz() ──► state mutieren + db.save…() ─�
 ## 5. Datenmodell (Kurz – Details in docs/DATA-MODEL.md)
 
 ```js
-DayEntry  { date:'YYYY-MM-DD', pnl:number|null, note:string, tags:string[], images:[{id,path,name}], updated_at }
+DayEntry  { date:'YYYY-MM-DD', pnl:number|null, note:string, note_color:string|null, tags:string[] (ohne UI),
+            images:[{id,path,name}], fields:[{id,value,label}], updated_at }
 Note      { id, title, body, pinned:boolean, created_at, updated_at }
-Checklist { id, title, items:[{id,text,done:boolean}], position:number, created_at, updated_at }
+Checklist { id, title, items:[{id,text,info,done:boolean}], position:number, created_at, updated_at }
 ```
 
 Bilder: `path` ist im Supabase-Modus der Storage-Pfad `<user_id>/<date>/<timestamp>-<name>`,
@@ -137,7 +147,7 @@ python3 -m http.server 8080        # dann http://localhost:8080
 **Neues Feld am Tag (z.B. „Anzahl Trades"):**
 1. `docs/DATA-MODEL.md` + `supabase/schema.sql` ergänzen (`alter table day_entries add column trades integer;`).
 2. `js/data/supabase.js`: Spalte in `DAY_COLS` und in `saveDay()` aufnehmen. Lokaler Adapter braucht nichts.
-3. `js/sidebar.js` → `dayPanel()`: Eingabefeld hinzufügen, speichert über `saveDebounced({ trades })`.
+3. `js/detail.js` → `detailPanel()` (oder `js/daymodal.js` für das Popup): Eingabefeld hinzufügen, speichert über `saveDebounced({ trades })` bzw. `actions.savePopup`.
 4. Optional in `js/calendar.js` anzeigen.
 
 **Neue Auswertung/Diagramm:** Daten aus `state.days` filtern (`entriesOfMonth` in `calendar.js` als Vorbild),
@@ -145,7 +155,7 @@ Statistik in `utils.js` (`periodStats` erweitern), Darstellung als Inline-SVG wi
 eine Chart-Bibliothek per ESM-CDN (z.B. `https://esm.sh/chart.js`), dann aber als dynamischer Import.
 
 **Neuer Tab in der Seitenleiste:** Button in `index.html` (`#sideTabs`), Panel-Funktion in `sidebar.js`,
-Eintrag in der `view`-Map in `renderSidebar()`.
+Eintrag in der Map in `renderSidebar()`.
 
 **Neue Tabelle:** `schema.sql` (Tabelle + RLS-Policy nach Muster), beide Adapter (`list/save/delete`),
 Vertrag in `js/data/index.js` dokumentieren, Laden in `loadAll()` ergänzen.
@@ -157,5 +167,5 @@ Vertrag in `js/data/index.js` dokumentieren, Laden in `loadAll()` ergänzen.
 * Lokaler Modus: localStorage ≈ 5 MB → nur wenige Bilder; kein Sync. Für echte Nutzung Supabase.
 * Kein Offline-Cache im Supabase-Modus (kommt evtl. später als PWA mit Service Worker, siehe ROADMAP).
 * Ein Benutzer. Multi-User wäre über RLS bereits abgesichert, aber die UI kennt keine Teams.
-* Signierte Bild-URLs werden pro Sitzung gecacht (`imageUrlCache` in `sidebar.js`), laufen nach 1 h ab –
+* Signierte Bild-URLs werden pro Sitzung gecacht (`imageUrlCache` in `detail.js`), laufen nach 1 h ab –
   nach Ablauf einfach Tab wechseln/neu laden.
