@@ -42,6 +42,7 @@ create table if not exists public.checklists (
   title       text not null default '',
   items       jsonb not null default '[]',   -- [{ "id": "...", "text": "...", "done": false }]
   position    integer not null default 0,
+  threshold   integer not null default 85,   -- Richtwert in %: ab so vielen erledigten Punkten ist der Trade erlaubt
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now()
 );
@@ -49,6 +50,7 @@ create table if not exists public.checklists (
 -- Nachrüsten für bereits bestehende Projekte (create table if not exists ergänzt keine Spalten):
 alter table public.day_entries add column if not exists note_color text;
 alter table public.day_entries add column if not exists fields jsonb not null default '[]';
+alter table public.checklists  add column if not exists threshold integer not null default 85;
 
 create index if not exists day_entries_user_date_idx on public.day_entries (user_id, date);
 create index if not exists notes_user_updated_idx    on public.notes (user_id, updated_at desc);
