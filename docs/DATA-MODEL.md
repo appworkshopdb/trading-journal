@@ -68,3 +68,7 @@ mit je < 30 Punkten) völlig ausreichend und spart Roundtrips.
   könnte dann berechnet statt eingegeben werden.
 * `day_entries.mood` / `day_entries.rating` (1–5) für qualitative Auswertung.
 * `day_entries.strategy_id` → Verknüpfung zu einer Notiz/Strategie, um Ergebnisse pro Strategie auszuwerten.
+
+## Ergänzungen
+- `checklists.threshold` (integer, Standard 85): Richtwert in %. Global gedacht, wird an allen Listen gleich gesetzt.
+- `day_entries.images[]`: Objekte `{ id, path, name, caption? }` – `caption` ist die optionale Bildbeschriftung.
