@@ -87,7 +87,7 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
   border-bottom: 1px solid var(--border);
 }
 .brand { font-weight: 700; letter-spacing: 0.02em; white-space: nowrap; }
-.period-nav { display: flex; align-items: center; gap: 4px; margin-left: auto; margin-right: auto; }
+.period-nav { display: flex; align-items: center; gap: 4px; }
 .icon-btn { width: 34px; height: 34px; border-radius: 8px; font-size: 22px; line-height: 1; color: var(--text-muted); }
 .icon-btn:hover, .text-btn:hover { background: var(--bg-elev2); color: var(--text); }
 .period-label { font-weight: 600; font-size: 16px; padding: 6px 8px; border-radius: 8px; min-width: 110px; text-align: center; }
@@ -103,7 +103,7 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
 .view-toggle { display: flex; background: var(--bg-elev2); border-radius: 9px; padding: 3px; }
 .view-toggle button { padding: 5px 14px; border-radius: 7px; color: var(--text-muted); font-weight: 600; font-size: 14px; }
 .view-toggle button.active { background: var(--accent); color: var(--accent-ink); }
-.status { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--text-muted); white-space: nowrap; }
+.status { margin-left: auto; display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--text-muted); white-space: nowrap; }
 #saveStatus { min-width: 80px; text-align: right; color: var(--accent-strong); }
 #saveStatus.error { color: var(--loss); }
 .mode-label { max-width: 160px; overflow: hidden; text-overflow: ellipsis; }
@@ -117,7 +117,10 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
   grid-template-rows: 100%;
 }
 .pane { min-width: 0; min-height: 0; overflow: auto; }
-.pane-calendar { display: flex; flex-direction: column; padding: 12px; }
+.pane-calendar { display: flex; flex-direction: column; padding: 12px; overflow: hidden; }
+.calendar-body { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: auto; }
+/* Monats-/Jahresnavigation + Umschalter: unter der Menüleiste, über dem Kalender (links ausgerichtet) */
+.calbar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 14px; margin-bottom: 10px; }
 .pane-side { display: flex; flex-direction: column; background: var(--bg-elev); border-left: 1px solid var(--border); }
 .splitter {
   background: var(--border);
@@ -352,10 +355,9 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
   .topbar { gap: 6px; padding: 0 8px; }
   .brand { display: none; }
   .market-pill { padding: 3px 8px; font-size: 12px; }
-  .period-nav { margin-left: 0; margin-right: 0; }
+  .calbar { justify-content: center; }
   .period-label { min-width: 0; font-size: 15px; padding: 6px 4px; }
   #saveStatus { display: none; }
-  .view-toggle { margin-left: auto; }
   .view-toggle button { padding: 5px 10px; }
   .stats { grid-template-columns: repeat(4, 1fr); gap: 5px; }
   .stat { padding: 6px 8px; }
@@ -370,28 +372,9 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
 @media (max-width: 640px) { #btnToday { display: none; } }
 .pl-short { display: none; }
 @media (max-width: 480px) {
-  .pl-full { display: none; }
-  .pl-short { display: inline; }
-  .period-label { min-width: 0; }
-}
-@media (max-width: 480px) {
-  .icon-btn { width: 26px; }
-  .topbar { gap: 4px; padding: 0 6px; }
-  .market-pill { padding: 3px 7px; font-size: 11px; }
-  .period-nav { gap: 0; }
-  .period-label { font-size: 14px; padding: 6px 3px; }
-  .year-select { padding: 4px 5px; font-size: 13px; }
-  .view-toggle { padding: 2px; }
-  .view-toggle button { padding: 5px 7px; font-size: 13px; }
-  .avatar { width: 28px; height: 28px; font-size: 13px; }
-  .status { gap: 0; }
-}
-
-@media (max-width: 380px) {
-  .market-pill { padding: 2px 5px; font-size: 10px; }
-  .year-select { padding: 4px 3px; font-size: 12px; }
-  .view-toggle button { padding: 5px 5px; font-size: 12px; }
-  .icon-btn { width: 22px; }
+  .topbar { gap: 6px; padding: 0 8px; }
+  .market-pill { padding: 3px 8px; font-size: 12px; }
+  .avatar { width: 30px; height: 30px; font-size: 13px; }
 }
 
 /* Handy im Querformat: sehr wenig Höhe -> alles kompakter */
@@ -473,7 +456,7 @@ strong.ms-val { font-weight: 700; font-size: 18px; line-height: 1.2; }
 .menu-item.active { background: var(--accent); color: var(--accent-ink); }
 .menu-item.danger { color: var(--loss); }
 .menu-sep { height: 1px; background: var(--border); margin: 4px 2px; }
-.menu-theme { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 8px 6px 12px; }
+.menu-theme { display: flex; justify-content: center; padding: 6px 8px; }
 .menu-theme-label, .menu-label { font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-muted); }
 .menu-label { padding: 8px 12px 0; }
 .seg { display: flex; background: var(--bg-elev2); border-radius: 9px; padding: 3px; }
