@@ -90,7 +90,10 @@ UI-Ereignis ──► actions.xyz() ──► state mutieren + db.save…() ─�
   2. **„Öffnen" in der Zelle** → Detailbereich rechts (`js/detail.js`, `state.detailDate`), ersetzt die Tabs (Button „‹ Zurück"):
      oben Screenshots (bis 3 nebeneinander, dann neue Zeile), darunter „Auswertung des Tages" = frei anlegbare Felder
      (kurzer Wert + Bezeichnung) in 2 Spalten, Button „+ neues Feld".
-* **Notizfarben** (`NOTE_COLORS` in `utils.js`): Blau, Orange, Lila, Gelb, Pink, Grau – bewusst ohne Grün/Rot (Gewinn/Verlust).
+* **Notizfarben** (`NOTE_COLORS` in `utils.js`, IDs werden gespeichert – nicht umbenennen): Blau, Türkis, Grün, Gelb, Orange, Rot, Pink, Lila, Weiß, Grau.
+  Die Auswahl im Popup ist eine eigene Dropdown-Liste (Farbpunkt vor jedem Namen), kein `<select>`.
+* **Handy** (Breite ≤ 640 px oder Höhe ≤ 480 px, rein per CSS-Media-Query): der Button „Öffnen" fehlt in den Kalenderzellen;
+  stattdessen steht `#tabOpenDay` rechts neben den Tabs und öffnet den Detailbereich des zuletzt angetippten Tages.
 * **Monatsansicht:** 7 Spalten (Mo–So), so viele Wochenzeilen wie der Monat braucht (4–6). Zellen füllen die
   verfügbare Höhe (`flex: 1` + `grid-template-rows: repeat(var(--rows), 1fr)`). Zelle zeigt Tagesnummer,
   Notiztext mit Farbleiste, PnL (grün/rot/grau), Bilder-Anzahl und den Button „Öffnen". Die Zelle ist ein `<div>`
