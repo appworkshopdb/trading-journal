@@ -359,7 +359,7 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
   .topbar { gap: 6px; padding: 0 8px; }
   .brand { display: none; }
   .market-pill { padding: 3px 8px; font-size: 12px; }
-  .calbar { justify-content: center; }
+  .calbar { justify-content: center; flex-wrap: nowrap; gap: 8px; } /* Navigation und Monat/Jahr immer nebeneinander */
   .period-label { min-width: 0; font-size: 15px; padding: 6px 4px; }
   #saveStatus { display: none; }
   .view-toggle button { padding: 5px 10px; }
@@ -378,7 +378,14 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
 /* Sehr schmale Handys: "Heute" ausblenden (der Monatsname springt ebenfalls zu heute), damit die Topbar passt */
 @media (max-width: 640px) { #btnToday { display: none; } }
 .pl-short { display: none; }
+@media (max-width: 350px) { .pl-full { display: none; } .pl-short { display: inline; } } /* sehr schmal: Monat als Kurzform */
 @media (max-width: 480px) {
+  .calbar .icon-btn { width: 24px; }
+  .calbar .period-nav { gap: 0; min-width: 0; }
+  .calbar .period-label { min-width: 0; font-size: 14px; padding: 6px 3px; }
+  .calbar .year-select { padding: 4px 5px; font-size: 13px; }
+  .calbar .view-toggle { padding: 2px; flex-shrink: 0; }
+  .calbar .view-toggle button { padding: 5px 9px; font-size: 13px; }
   .topbar { gap: 6px; padding: 0 8px; }
   .market-pill { padding: 3px 8px; font-size: 12px; }
   .avatar { width: 30px; height: 30px; font-size: 13px; }
