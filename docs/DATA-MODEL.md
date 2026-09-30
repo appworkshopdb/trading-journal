@@ -1,0 +1,68 @@
+# Datenmodell
+
+Alle Zeitstempel ISO-8601 (`updated_at`, `created_at`). Kalendertage als `'YYYY-MM-DD'` (lokale Zeit).
+IDs sind UUIDs (`crypto.randomUUID()` im Client, `gen_random_uuid()` als DB-Default).
+
+## DayEntry – Tabelle `day_entries`
+
+| JS-Feld | DB-Spalte | Typ | Bedeutung |
+|---|---|---|---|
+| `date` | `date` | date | Kalendertag, zusammen mit `user_id` eindeutig |
+| `pnl` | `pnl` | numeric(14,2) / null | Tagesergebnis in `CONFIG.CURRENCY`. `null` = nichts eingetragen. `0` = Break-even (zählt als gehandelter Tag) |
+| `note` | `note` | text | Freitext des Tages |
+| `tags` | `tags` | text[] | Schlagworte, z.B. `['Breakout','Overtrading']` |
+| `images` | `images` | jsonb | Array von `{ id, path, name }` – siehe unten |
+| – | `user_id` | uuid | Besitzer (Default `auth.uid()`), nur im Supabase-Modus |
+| `updated_at` | `updated_at` | timestamptz | wird vom Client gesetzt |
+
+**Leerer Tag** = `pnl == null && note.trim() === '' && tags.length === 0 && images.length === 0` → wird gelöscht, nicht gespeichert.
+
+### Bildverweis `{ id, path, name }`
+
+* `id` – UUID, nur für UI-Zwecke (Löschen einzelner Bilder).
+* `path` – **Supabase:** Storage-Pfad im Bucket `screenshots`: `<user_id>/<YYYY-MM-DD>/<timestamp>-<dateiname>`.
+  Der erste Ordner ist die `user_id` – darauf prüfen die Storage-Policies. **Lokal:** JPEG-Data-URL (max. 1400 px).
+* `name` – ursprünglicher Dateiname (Anzeige/`alt`).
+
+Anzeigbare URL nur über `db.imageUrl(path)`; im Supabase-Modus eine signierte URL (Bucket ist privat).
+
+## Note – Tabelle `notes`
+
+| JS-Feld | DB-Spalte | Typ |
+|---|---|---|
+| `id` | `id` | uuid |
+| `title` | `title` | text |
+| `body` | `body` | text (Klartext, kein Markdown-Rendering bisher) |
+| `pinned` | `pinned` | boolean – angepinnte Notizen zuerst |
+| `created_at`, `updated_at` | ebenso | timestamptz |
+
+Sortierung: `pinned desc, updated_at desc`.
+
+## Checklist – Tabelle `checklists`
+
+| JS-Feld | DB-Spalte | Typ |
+|---|---|---|
+| `id` | `id` | uuid |
+| `title` | `title` | text |
+| `items` | `items` | jsonb: `[{ id, text, done }]` |
+| `position` | `position` | integer – Reihenfolge der Listen |
+| `created_at`, `updated_at` | ebenso | timestamptz |
+
+Items werden als ganzes JSON gespeichert (keine eigene Tabelle) – bei den erwarteten Mengen (wenige Listen
+mit je < 30 Punkten) völlig ausreichend und spart Roundtrips.
+
+## Lokaler Modus – localStorage-Schlüssel
+
+| Schlüssel | Inhalt |
+|---|---|
+| `tj.days` | Objekt `{ 'YYYY-MM-DD': DayEntry }` |
+| `tj.notes` | Array `Note[]` |
+| `tj.checklists` | Array `Checklist[]` |
+| `tj.splitPct` | Splitter-Position in % (wird in **beiden** Modi genutzt – reine UI-Einstellung) |
+
+## Ideen für spätere Erweiterungen (noch nicht umgesetzt)
+
+* `trades` (Tabelle) – einzelne Trades pro Tag mit Instrument, Richtung, Einstieg/Ausstieg, R-Multiple → `pnl`
+  könnte dann berechnet statt eingegeben werden.
+* `day_entries.mood` / `day_entries.rating` (1–5) für qualitative Auswertung.
+* `day_entries.strategy_id` → Verknüpfung zu einer Notiz/Strategie, um Ergebnisse pro Strategie auszuwerten.
