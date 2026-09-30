@@ -7,22 +7,24 @@
   --bg-elev: #0b0b0b;
   --bg-elev2: #151515;
   --border: #262626;
-  --text: #f2f2f2;          /* fast Weiß */
-  --text-muted: #9b9b9b;    /* Hellgrau */
-  --accent: #5f8f8b;        /* Teal wie in der Skizze */
-  --accent-strong: #7fb3ae;
-  --win: #089981;           /* TradingView Grün (Pine: color.teal / Standard-Kerze) */
-  --win-rgb: 8, 153, 129;
+  --text: #ffffff;  /* Weiß */
+  --text-muted: #a8a8a8;  /* Hellgrau */
+  --accent: #ffffff;  /* weiße Buttons/Akzente, Schrift darauf schwarz */
+  --accent-strong: #d6d6d6;  /* Hover */
+  --accent-ink: #000000;     /* Schrift auf weißen Buttons */
+  --font-num: 'SF Mono', SFMono-Regular, ui-monospace, 'Roboto Mono', Menlo, Consolas, monospace;
+  --win: #00e676;  /* knalliges Grün */
+  --win-rgb: 0, 230, 118;
   --win-bg: rgba(var(--win-rgb), 0.18);
-  --loss: #f23645;          /* TradingView Rot (Pine: color.red / Standard-Kerze) */
-  --loss-rgb: 242, 54, 69;
+  --loss: #ff1744;  /* knalliges Rot */
+  --loss-rgb: 255, 23, 68;
   --loss-bg: rgba(var(--loss-rgb), 0.18);
   --flat: #9b9b9b;
   --flat-bg: rgba(155, 155, 155, 0.14);
   --today: #f0b35c;
   --radius: 10px;
   --topbar-h: 52px;
-  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font: -apple-system, BlinkMacSystemFont, 'Trebuchet MS', Roboto, 'Segoe UI', Ubuntu, Helvetica, Arial, sans-serif;
 }
 
 * { box-sizing: border-box; }
@@ -32,6 +34,10 @@ body {
   background: var(--bg);
   color: var(--text);
   font-size: 15px;
+  font-weight: 500;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
   overscroll-behavior: none;
   -webkit-text-size-adjust: 100%;
 }
@@ -64,12 +70,12 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
 }
 .text-btn { padding: 6px 10px; border-radius: 8px; color: var(--text-muted); font-size: 14px; white-space: nowrap; }
 .text-btn.danger:hover { color: var(--loss); background: var(--loss-bg); }
-.primary { background: var(--accent); color: #fff; padding: 8px 14px; border-radius: 8px; font-weight: 600; }
+.primary { background: var(--accent); color: var(--accent-ink); padding: 8px 14px; border-radius: 8px; font-weight: 600; }
 .primary:hover { background: var(--accent-strong); }
 .primary.small { padding: 5px 10px; font-size: 13px; }
 .view-toggle { display: flex; background: var(--bg-elev2); border-radius: 9px; padding: 3px; }
 .view-toggle button { padding: 5px 14px; border-radius: 7px; color: var(--text-muted); font-weight: 600; font-size: 14px; }
-.view-toggle button.active { background: var(--accent); color: #fff; }
+.view-toggle button.active { background: var(--accent); color: var(--accent-ink); }
 .status { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--text-muted); white-space: nowrap; }
 #saveStatus { min-width: 80px; text-align: right; color: var(--accent-strong); }
 #saveStatus.error { color: var(--loss); }
@@ -139,7 +145,7 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
 .day-note-text { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; font-size: 11px; line-height: 1.3; color: var(--text); word-break: break-word; }
 .day-foot { margin-top: auto; width: 100%; display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 3px 4px; min-width: 0; } /* schmale Zellen: Betrag oben, "Öffnen" darunter */
 .day-open { position: relative; z-index: 2; pointer-events: auto; flex-shrink: 0; padding: 3px 8px; font-size: 11px; font-weight: 600; border-radius: 6px; border: 1px solid var(--border); color: var(--text-muted); }
-.day-open:hover, .day.selected .day-open { background: var(--accent); border-color: var(--accent); color: #fff; }
+.day-open:hover, .day.selected .day-open { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
 .day-pnl { font-weight: 700; font-size: clamp(11px, 1.4vw, 15px); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 .day.win .day-pnl { color: var(--win); }
 .day.loss .day-pnl { color: var(--loss); }
@@ -317,3 +323,8 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
   .side-content { padding: 10px; }
   .year-chart { display: none; }
 }
+
+/* ---------------- Trading-Stil: Zahlen in Monospace ---------------- */
+.stat-value, .day-pnl, .day-num, .mini-sum, .detail-pnl, .field-val, .year-select, .pnl-input,
+.field input.pnl-gain, .field input.pnl-loss { font-family: var(--font-num); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+.stat-label, .field > span, .field-head, .weekdays span { letter-spacing: 0.07em; }
