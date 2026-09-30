@@ -182,3 +182,4 @@ Vertrag in `js/data/index.js` dokumentieren, Laden in `loadAll()` ergänzen.
 - Tag-Popup hat keinen Auto-Fokus (Tastatur erscheint erst beim Antippen eines Feldes).
 - Checklisten-Richtwert: `state.threshold` (%, Standard 85) wird als Spalte `threshold` an allen Listen gespeichert (`actions.setThreshold`). Anteil = erledigt/gesamt; Erlaubt ab Anteil >= Richtwert (leere Liste nie). Anzeige: Übersicht (Badge) + Liste (Balken mit Marke).
 - Bilder (`images[]` im Tageseintrag) haben optional `caption` (Beschriftung).
+- Jahresansicht = gleiche Bedienung wie Monatsansicht: Monat antippen -> Popup, "Öffnen" -> Detailbereich. Monatseinträge liegen in `state.days` unter dem Schlüssel `'YYYY-MM'` (Tage: `'YYYY-MM-DD'`, `isMonthKey()`), in Supabase in Tabelle `month_entries`. Monatsergebnis = Summe der Tage + optionaler eigener Gewinn/Verlust (`monthTotal()`); Notiz, Farbe, Bilder, Auswertung sind unabhängig von den Tagen. Wechsel Monat/Jahr schließt Popup und Detail.
