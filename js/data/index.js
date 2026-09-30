@@ -6,6 +6,7 @@
 //   init()                       -> Promise<user|null>     Session prüfen
 //   onAuthChange(cb)             -> void                   cb(user|null) bei Login/Logout
 //   signIn(email, password)      -> Promise<void>          wirft Error bei Fehler
+//   signUp(email, password)      -> Promise<void>          Konto selbst anlegen + anmelden (nur Supabase)
 //   signOut()                    -> Promise<void>
 //   getUserInfo()                -> { email, id } | null   für das Profilmenü
 //   changePassword(pw)           -> Promise<void>          Passwort ändern (nur Supabase)

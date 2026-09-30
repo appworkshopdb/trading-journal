@@ -10,6 +10,18 @@ const MONTH_COLS = 'month, pnl, note, note_color, images, fields, updated_at';
 const NOTE_COLS = 'id, title, body, pinned, created_at, updated_at';
 const CHECK_COLS = 'id, title, items, position, threshold, created_at, updated_at';
 
+/** Supabase-Fehlertexte auf Deutsch */
+function authMessage(err) {
+  const m = String(err?.message || '');
+  if (/invalid login credentials/i.test(m)) return 'E-Mail oder Passwort stimmt nicht.';
+  if (/already registered|already been registered/i.test(m)) return 'Diese E-Mail ist schon registriert – bitte anmelden.';
+  if (/password should be at least|weak password|at least 6/i.test(m)) return 'Das Passwort muss mindestens 6 Zeichen haben.';
+  if (/valid email|invalid email|email address .* is invalid/i.test(m)) return 'Bitte eine gültige E-Mail-Adresse eingeben.';
+  if (/signups not allowed|signup is disabled/i.test(m)) return 'Registrierungen sind in Supabase ausgeschaltet.';
+  if (/rate limit|too many/i.test(m)) return 'Zu viele Versuche. Bitte kurz warten und erneut probieren.';
+  return m || 'Anmeldung fehlgeschlagen.';
+}
+
 function must({ data, error }) { if (error) throw error; return data; }
 
 export function createSupabaseAdapter(cfg) {
@@ -35,7 +47,18 @@ export function createSupabaseAdapter(cfg) {
     },
     async signIn(email, password) {
       const { error } = await sb.auth.signInWithPassword({ email, password });
-      if (error) throw error;
+      if (error) throw new Error(authMessage(error));
+    },
+    // Selbst registrieren: legt den Benutzer in Supabase an. Ohne E-Mail-Bestätigung (Dashboard: Authentication -> Sign In / Providers -> Email -> "Confirm email" aus)
+    // kommt sofort eine Sitzung zurück und der Benutzer ist angemeldet.
+    async signUp(email, password) {
+      const { data, error } = await sb.auth.signUp({ email, password });
+      if (error) throw new Error(authMessage(error));
+      if (!data.session) {
+        // Sicherheitsnetz: Bestätigung ist in Supabase noch aktiv oder die E-Mail ist schon registriert
+        const { error: e2 } = await sb.auth.signInWithPassword({ email, password });
+        if (e2) throw new Error('Registrierung angelegt, aber noch nicht freigeschaltet: In Supabase ist „Confirm email“ noch aktiv. Bitte den Link in der Bestätigungs-E-Mail öffnen oder die Option ausschalten.');
+      }
     },
     // ---- Profil ----
     async changePassword(newPassword) {

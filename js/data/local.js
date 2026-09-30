@@ -37,6 +37,7 @@ export function createLocalAdapter() {
     async init() { return { id: 'local', email: 'Lokal (nur dieses Gerät)' }; },
     onAuthChange() {},
     async signIn() {},
+    async signUp() {},
     async getFieldTemplate() { const t = read('tj.fieldTemplate', null); return { left: t?.left || [], right: t?.right || [] }; },
     async saveFieldTemplate(tpl) { write('tj.fieldTemplate', tpl); },
     getAvatarPath() { try { return localStorage.getItem('tj.avatar'); } catch { return null; } },
