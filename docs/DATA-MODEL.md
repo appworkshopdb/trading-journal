@@ -72,4 +72,4 @@ mit je < 30 Punkten) völlig ausreichend und spart Roundtrips.
 ## Ergänzungen
 - `checklists.threshold` (integer, Standard 85): Richtwert in %. Global gedacht, wird an allen Listen gleich gesetzt.
 - `day_entries.images[]`: Objekte `{ id, path, name, caption? }` – `caption` ist die optionale Bildbeschriftung.
-- `month_entries` (neu): `month` ('YYYY-MM'), `pnl` (optionaler Zuschlag zur Summe der Tage), `note`, `note_color`, `images`, `fields`; unique (user_id, month). Im Client als Eintrag mit `date = 'YYYY-MM'`.
+- `month_entries` (neu): `month` ('YYYY-MM'), `pnl` (ungenutzt/null – das Monatsergebnis wird aus den Tagen berechnet), `note`, `note_color`, `images`, `fields`; unique (user_id, month). Im Client als Eintrag mit `date = 'YYYY-MM'`.
