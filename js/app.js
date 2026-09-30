@@ -2,6 +2,7 @@
 
 import { state, setState, subscribe } from './state.js';
 import { createAdapter } from './data/index.js';
+import { startAuthBg, stopAuthBg } from './authbg.js';
 import { renderCalendar } from './calendar.js';
 import { renderSidebar } from './sidebar.js';
 import { renderDayModal } from './daymodal.js';
@@ -388,6 +389,7 @@ function renderTopbar() {
   period.replaceChildren(el('span', 'pl-full', MONTHS[state.month]), el('span', 'pl-short', MONTHS_SHORT[state.month])); // schmale Handys zeigen die Kurzform
   period.title = `${MONTHS[state.month]} – zum heutigen Monat`;
   $('btnPeriod').classList.toggle('hidden', state.view !== 'month');
+  $('btnToday').classList.toggle('hidden', state.view !== 'month'); // "Heute" nur in der Monatsansicht
   for (const b of document.querySelectorAll('.view-toggle button')) b.classList.toggle('active', b.dataset.view === state.view);
 
   const sel = $('yearSelect');
@@ -438,7 +440,10 @@ function bindTopbar() {
 
 // ---------------------------------------------------------------- Login
 
-function showAuth(show) { $('authOverlay').classList.toggle('hidden', !show); }
+function showAuth(show) {
+  $('authOverlay').classList.toggle('hidden', !show);
+  if (show) startAuthBg($('authBg')); else stopAuthBg();
+}
 
 let registering = false; // Login-Karte: Anmelden oder neu registrieren
 
