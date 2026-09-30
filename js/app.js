@@ -440,13 +440,32 @@ function bindTopbar() {
 
 function showAuth(show) { $('authOverlay').classList.toggle('hidden', !show); }
 
+let registering = false; // Login-Karte: Anmelden oder neu registrieren
+
+function renderAuthMode() {
+  $('authTitle').textContent = registering ? 'Konto erstellen' : 'Anmelden';
+  $('authHint').textContent = registering
+    ? 'Lege mit deiner E-Mail und einem Passwort (mind. 6 Zeichen) dein eigenes Konto an. Eine Bestätigungs-E-Mail ist nicht nötig.'
+    : 'Melde dich mit deiner E-Mail und deinem Passwort an. Das ist nur einmal pro Gerät nötig.';
+  $('authSubmit').textContent = registering ? 'Registrieren' : 'Anmelden';
+  $('authSwitch').textContent = registering ? 'Schon ein Konto? Anmelden' : 'Noch kein Konto? Registrieren';
+  $('authPw2Wrap').classList.toggle('hidden', !registering);
+  $('authPw2').required = registering;
+  $('authPw').autocomplete = registering ? 'new-password' : 'current-password';
+  $('authError').textContent = '';
+}
+
 function bindAuth() {
+  $('authSwitch').onclick = () => { registering = !registering; renderAuthMode(); };
   $('authForm').onsubmit = async (e) => {
     e.preventDefault();
     const f = new FormData(e.target);
     $('authError').textContent = '';
-    try { await db.signIn(f.get('email'), f.get('password')); }
+    if (registering && f.get('password') !== f.get('password2')) { $('authError').textContent = 'Die Passwörter stimmen nicht überein.'; return; }
+    $('authSubmit').disabled = true;
+    try { await (registering ? db.signUp(f.get('email'), f.get('password')) : db.signIn(f.get('email'), f.get('password'))); }
     catch (err) { $('authError').textContent = err.message || 'Anmeldung fehlgeschlagen'; }
+    finally { $('authSubmit').disabled = false; }
   };
 }
 
@@ -477,7 +496,7 @@ async function main() {
       const changed = (u?.id || null) !== (state.user?.id || null);
       state.user = u;
       showAuth(!u);
-      if (!u) { state.days = {}; state.notes = []; state.checklists = []; setState({}); }
+      if (!u) { state.days = {}; state.notes = []; state.checklists = []; usage = null; avatarCache = { path: null, url: null }; pwOpen = false; setState({ menu: null }); }
       else if (changed) await loadAll();
       else refreshAvatar();
     });
