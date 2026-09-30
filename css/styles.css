@@ -170,9 +170,17 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
 }
 .mini-month {
   display: flex; flex-direction: column; min-width: 0; min-height: 0;
-  background: var(--bg-elev); border: 1px solid var(--border); border-radius: var(--radius); padding: 8px; text-align: left;
+  position: relative; background: var(--bg-elev); border: 1px solid var(--border); border-radius: var(--radius); padding: 8px; text-align: left;
 }
 .mini-month:hover { border-color: var(--accent); }
+.mini-month.win { border-color: rgba(var(--win-rgb), 0.45); }
+.mini-month.loss { border-color: rgba(var(--loss-rgb), 0.45); }
+.mini-month.selected { border-color: var(--accent-strong); }
+.mini-month > .mini-head, .mini-month > .day-note, .mini-month > .mini-grid, .mini-month > .day-foot { pointer-events: none; }
+.mini-month > .day-foot { margin-top: 6px; justify-content: flex-end; }
+.mini-month .day-note { margin-bottom: 4px; }
+.mini-month .day-note-text { -webkit-line-clamp: 2; }
+.mini-head .mark { font-style: normal; font-size: 10px; color: var(--text-muted); }
 .mini-head { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; margin-bottom: 6px; min-width: 0; }
 .mini-title { font-weight: 600; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .mini-sum { font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
@@ -303,7 +311,7 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
 .modal-open { display: none; width: 100%; padding: 11px 14px; border-radius: 8px; border: 1px solid var(--accent); color: var(--text); font-weight: 700; text-align: center; }
 .modal-open:hover, .modal-open:focus-visible { background: var(--accent); color: var(--accent-ink); outline: none; }
 @media (max-width: 640px), (max-height: 480px) {
-  .day-open { display: none; }
+  .day-open, .mini-month > .day-foot { display: none; }
   .modal-open { display: block; }
 }
 
