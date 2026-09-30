@@ -101,12 +101,20 @@ export function periodTitle(key, opts) {
 }
 /** Tageseinträge eines Monats ('YYYY-MM') aus dem Cache (ohne den Monatseintrag selbst) */
 export const dayEntriesOfMonth = (days, key) => Object.values(days).filter((d) => d.date.length === 10 && d.date.startsWith(key));
-/** Monatsergebnis = Summe der Tage + optionaler Gewinn/Verlust des Monatseintrags; null, wenn nichts eingetragen */
+/** Aufschlüsselung eines Monats aus den Tagen: Gewinne (Summe positiver Tage), Verluste (Summe negativer Tage, als Betrag), Ergebnis */
+export function monthBreakdown(days, key) {
+  let gains = 0, losses = 0, traded = 0;
+  for (const e of dayEntriesOfMonth(days, key)) {
+    if (e.pnl == null) continue;
+    traded++;
+    if (e.pnl > 0) gains += e.pnl; else if (e.pnl < 0) losses += -e.pnl;
+  }
+  return { gains, losses, result: gains - losses, traded };
+}
+/** Monatsergebnis = Gewinne - Verluste der Tage; null, wenn an keinem Tag etwas eingetragen ist */
 export function monthTotal(days, key) {
-  const st = periodStats(dayEntriesOfMonth(days, key));
-  const adj = days[key]?.pnl;
-  if (!st.traded && adj == null) return null;
-  return st.sum + (adj || 0);
+  const b = monthBreakdown(days, key);
+  return b.traded ? b.result : null;
 }
 
 /** Statistik über eine Liste von Tageseinträgen */

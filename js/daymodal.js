@@ -1,7 +1,7 @@
 // Popup zum Antippen eines Kalendertags: Gewinn, Verlust, Notiz, Notizfarbe.
 // Wird nur neu gebaut, wenn sich der geöffnete Tag ändert – so gehen Eingaben bei Hintergrund-Renderings nicht verloren.
 
-import { h, periodTitle, isMonthKey, monthTotal, fmtMoney, NOTE_COLORS, noteColor } from './utils.js';
+import { h, periodTitle, isMonthKey, monthBreakdown, fmtMoney, signClass, NOTE_COLORS, noteColor } from './utils.js';
 import { CONFIG } from '../config.js';
 
 let shownFor = null;
@@ -31,7 +31,7 @@ export function renderDayModal(root, state, actions) {
   const entry = state.days[iso];
   const title = periodTitle(iso);
   const isMonth = isMonthKey(iso);
-  const sumOfDays = isMonth ? monthTotal(Object.fromEntries(Object.entries(state.days).filter(([k]) => k !== iso)), iso) : null;
+  const brk = isMonth ? monthBreakdown(state.days, iso) : null;
 
   // Bestehendes Ergebnis auf Gewinn-/Verlustfeld verteilen
   const pnl = entry?.pnl ?? null;
@@ -83,7 +83,7 @@ export function renderDayModal(root, state, actions) {
     const v = parseAmount(loss.value);
     // Gewinn und Verlust zusammen ergeben das Tagesergebnis; beide leer = kein Ergebnis
     const result = g == null && v == null ? null : Math.abs(g || 0) - Math.abs(v || 0);
-    return { pnl: result, note: note.value, note_color: colorId };
+    return { pnl: isMonth ? null : result, note: note.value, note_color: colorId }; // Monat: Ergebnis kommt aus den Tagen
   };
   const save = (ev) => { ev.preventDefault(); actions.savePopup(iso, collect()); };
 
@@ -91,18 +91,28 @@ export function renderDayModal(root, state, actions) {
     h('div', { class: 'modal-head' },
       h('h2', {}, title),
       h('button', { type: 'button', class: 'text-btn', 'aria-label': 'Schließen', onClick: () => actions.closePopup() }, '×')),
-    isMonth && h('p', { class: 'muted small modal-hint' },
-      `Summe der Tage: ${sumOfDays != null ? fmtMoney(sumOfDays, CONFIG.CURRENCY) : '–'}. Gewinn/Verlust hier werden zusätzlich dazugerechnet (optional).`),
-    h('div', { class: 'modal-pnl' },
-      h('label', { class: 'field' }, h('span', {}, `Gewinn (${CONFIG.CURRENCY})`), gain),
-      h('label', { class: 'field' }, h('span', {}, `Verlust (${CONFIG.CURRENCY})`), loss)),
+    isMonth
+      // Monat: Ergebnis ergibt sich aus den Tagen (Gewinne - Verluste), keine Eingabefelder
+      ? h('div', { class: 'month-sum' },
+        h('span', { class: 'month-sum-label' }, 'Ergebnis des Monats · Gewinne − Verluste der Tage'),
+        brk.traded
+          ? h('div', { class: 'month-sum-formula' },
+            h('span', { class: 'pos' }, fmtMoney(brk.gains, CONFIG.CURRENCY, false)),
+            h('span', { class: 'op' }, '−'),
+            h('span', { class: 'neg' }, fmtMoney(brk.losses, CONFIG.CURRENCY, false)),
+            h('span', { class: 'op' }, '='),
+            h('strong', { class: signClass(brk.result) }, fmtMoney(brk.result, CONFIG.CURRENCY)))
+          : h('p', { class: 'muted small' }, 'Noch keine Tage mit Gewinn oder Verlust in diesem Monat.'))
+      : h('div', { class: 'modal-pnl' },
+        h('label', { class: 'field' }, h('span', {}, `Gewinn (${CONFIG.CURRENCY})`), gain),
+        h('label', { class: 'field' }, h('span', {}, `Verlust (${CONFIG.CURRENCY})`), loss)),
     h('label', { class: 'field' }, h('span', {}, 'Notiz'), note),
     h('div', { class: 'field' }, h('span', { id: 'noteColorLabel' }, 'Farbe der Notiz'), trigger, list),
     // Nur auf dem Handy sichtbar (CSS): dort fehlt "Öffnen" in der Kalenderzelle
     h('button', { type: 'button', class: 'modal-open', onClick: () => actions.savePopupAndOpen(iso, collect()) }, 'Öffnen · Bilder & Auswertung'),
     h('div', { class: 'modal-actions' },
       entry && h('button', { type: 'button', class: 'text-btn danger',
-        onClick: () => { if (confirm(isMonth ? 'Alle Einträge dieses Monats (Notiz, Bilder, Auswertung) löschen? Die Tage bleiben erhalten.' : 'Alle Einträge dieses Tages löschen?')) actions.clearPopup(iso); } }, 'Tag leeren'),
+        onClick: () => { if (confirm(isMonth ? 'Alle Einträge dieses Monats (Notiz, Bilder, Auswertung) löschen? Die Tage bleiben erhalten.' : 'Alle Einträge dieses Tages löschen?')) actions.clearPopup(iso); } }, isMonth ? 'Monat leeren' : 'Tag leeren'),
       h('div', { class: 'spacer' }),
       h('button', { type: 'button', class: 'text-btn', onClick: () => actions.closePopup() }, 'Abbrechen'),
       h('button', { type: 'submit', class: 'primary' }, 'Speichern')),

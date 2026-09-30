@@ -74,14 +74,12 @@ function yearView(state, actions) {
   const today = todayISO();
   const monthSums = [];
   let yearEntries = [];
-  let adjSum = 0, adjAny = false; // Gewinn/Verlust, die direkt an Monatseinträgen stehen
 
   const months = Array.from({ length: 12 }, (_, m) => {
     const key = monthPrefix(y, m);
     const entries = entriesOfMonth(state, y, m);
     yearEntries = yearEntries.concat(entries);
-    const e = state.days[key]; // eigener Eintrag des Monats (Notiz, Farbe, Bilder, Auswertung, optional Gewinn/Verlust)
-    if (e?.pnl != null) { adjSum += e.pnl; adjAny = true; }
+    const e = state.days[key]; // eigener Eintrag des Monats (Notiz, Farbe, Bilder, Auswertung)
     const total = monthTotal(state.days, key);
     monthSums.push(total ?? 0);
     const byDate = Object.fromEntries(entries.map((d) => [d.date, d]));
@@ -108,12 +106,8 @@ function yearView(state, actions) {
     );
   });
 
-  const yst = periodStats(yearEntries);
-  yst.sum += adjSum;
-  yst.traded = yst.traded || (adjAny ? 1 : 0);
-
   return h('div', { class: 'year-view' },
-    statsBar(`Jahr ${y}`, yst),
+    statsBar(`Jahr ${y}`, periodStats(yearEntries)),
     barChart(monthSums),
     h('div', { class: 'year-grid' }, months),
   );
