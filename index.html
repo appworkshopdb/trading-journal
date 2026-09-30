@@ -35,9 +35,8 @@
     <div class="splitter" id="splitter" role="separator" aria-orientation="vertical" title="Ziehen zum Anpassen · Doppelklick = 50/50"></div>
     <section class="pane pane-side" id="sidePane" aria-label="Details">
       <nav class="side-tabs" id="sideTabs" role="tablist">
-        <button data-tab="day" role="tab">Tag</button>
-        <button data-tab="notes" role="tab">Notizen</button>
         <button data-tab="checklists" role="tab">Checklisten</button>
+        <button data-tab="notes" role="tab">Notizen</button>
       </nav>
       <div class="side-content" id="sideContent"></div>
     </section>
@@ -54,6 +53,9 @@
       <p id="authError" class="error"></p>
     </form>
   </div>
+
+  <!-- Tag-Popup: Gewinn, Verlust, Notiz, Farbe (Inhalt baut js/daymodal.js) -->
+  <div id="dayModal" class="overlay hidden"></div>
 
   <!-- Bild-Vollansicht -->
   <div id="lightbox" class="overlay hidden"><img alt=""></div>
