@@ -318,12 +318,12 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
 .detail-date { font-weight: 700; }
 .detail-pnl { font-weight: 700; margin-left: 4px; font-variant-numeric: tabular-nums; }
 .detail-fields { display: flex; flex-direction: column; gap: 12px; padding-top: 14px; border-top: 1px solid var(--border); }
-.field-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 24px; }
+.field-cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 20px; align-items: start; } /* zwei feste Spalten */
+.field-col { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .field-row { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .field-val, .field-label { background: var(--bg-elev2); border: 1px solid var(--border); border-radius: 8px; outline: none; min-width: 0; }
-.field-val { width: 64px; flex-shrink: 0; padding: 7px 8px; text-align: center; }
-.field-label { flex: 1; padding: 7px 8px; background: transparent; border-color: transparent; }
-.field-label:hover { border-color: var(--border); }
+.field-label { width: 38%; flex-shrink: 0; padding: 7px 8px; font-family: var(--font-num); font-size: 13px; background: var(--bg-elev2); border-color: var(--border); }
+.field-val { flex: 1; padding: 7px 8px; }
 .field-val:focus, .field-label:focus { border-color: var(--accent); }
 .dashed-btn { align-self: flex-start; background: transparent; border: 1px dashed var(--border); color: var(--text-muted); border-radius: 8px; padding: 8px 14px; font-size: 14px; }
 .dashed-btn:hover { border-color: var(--accent); color: var(--text); }
@@ -365,7 +365,10 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
   .month-grid { grid-template-rows: repeat(var(--rows, 6), minmax(44px, 1fr)); }
   .day-note-text { -webkit-line-clamp: 1; }
   .day-open { padding: 2px 5px; font-size: 10px; }
-  .field-grid { grid-template-columns: 1fr; }
+  /* Handy: Bezeichnung über dem Wert, damit zwei Spalten schmal noch lesbar bleiben */
+  .field-row { flex-wrap: wrap; }
+  .field-label { width: 100%; flex: 0 0 100%; }
+  .field-val { width: 0; min-width: 0; }
 }
 
 /* Sehr schmale Handys: "Heute" ausblenden (der Monatsname springt ebenfalls zu heute), damit die Topbar passt */
