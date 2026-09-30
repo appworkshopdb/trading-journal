@@ -2,13 +2,20 @@
 // Regel: state nur über setState() ändern (löst Re-Render aus),
 // Ausnahme: laufende Texteingaben (siehe sidebar.js) mutieren gezielt und rendern nur den Kalender neu.
 
-import { todayISO } from './utils.js';
+import { todayISO, MARKETS } from './utils.js';
 
 const now = new Date();
+const stored = (k, ok, fallback) => { try { const v = localStorage.getItem(k); return ok.includes(v) ? v : fallback; } catch { return fallback; } };
 
 export const state = {
   mode: 'local',          // 'local' | 'supabase'
   user: null,             // { id, email } oder null
+
+  page: 'calendar',       // 'calendar' | 'analysis'
+  market: stored('tj.market', MARKETS, 'BTC'), // aktiver Markt der Kalenderansicht
+  analysisScope: null,    // Auswertungen: 'BTC' | 'GOLD' | null (alle Märkte)
+  menu: null,             // geöffnetes Kopfmenü: 'main' | 'profile' | null
+  theme: stored('tj.theme', ['dark', 'light'], 'dark'),
 
   view: 'month',          // 'month' | 'year'
   year: now.getFullYear(),

@@ -94,14 +94,14 @@ export function renderDayModal(root, state, actions) {
     isMonth
       // Monat: Ergebnis ergibt sich aus den Tagen (Gewinne - Verluste), keine Eingabefelder
       ? h('div', { class: 'month-sum' },
-        h('span', { class: 'month-sum-label' }, 'Ergebnis des Monats · Gewinne − Verluste der Tage'),
+        h('span', { class: 'month-sum-label' }, 'Ergebnis des Monats'),
         brk.traded
           ? h('div', { class: 'month-sum-formula' },
-            h('span', { class: 'pos' }, fmtMoney(brk.gains, CONFIG.CURRENCY, false)),
-            h('span', { class: 'op' }, '−'),
-            h('span', { class: 'neg' }, fmtMoney(brk.losses, CONFIG.CURRENCY, false)),
-            h('span', { class: 'op' }, '='),
-            h('strong', { class: signClass(brk.result) }, fmtMoney(brk.result, CONFIG.CURRENCY)))
+            h('div', { class: 'ms-cell' }, h('span', { class: 'ms-val pos' }, fmtMoney(brk.gains, CONFIG.CURRENCY, false)), h('span', { class: 'ms-cap' }, 'Gewinne')),
+            h('span', { class: 'ms-op' }, '−'),
+            h('div', { class: 'ms-cell' }, h('span', { class: 'ms-val neg' }, fmtMoney(brk.losses, CONFIG.CURRENCY, false)), h('span', { class: 'ms-cap' }, 'Verluste')),
+            h('span', { class: 'ms-op' }, '='),
+            h('div', { class: 'ms-cell' }, h('strong', { class: `ms-val ${signClass(brk.result)}` }, fmtMoney(brk.result, CONFIG.CURRENCY)), h('span', { class: 'ms-cap' }, 'Ergebnis')))
           : h('p', { class: 'muted small' }, 'Noch keine Tage mit Gewinn oder Verlust in diesem Monat.'))
       : h('div', { class: 'modal-pnl' },
         h('label', { class: 'field' }, h('span', {}, `Gewinn (${CONFIG.CURRENCY})`), gain),

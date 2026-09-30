@@ -3,6 +3,7 @@
 export const MONTHS = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
   'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
 export const MONTHS_SHORT = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
+export const MARKETS = ['BTC', 'GOLD']; // Märkte: jeder hat eigene Tages-/Monatseinträge
 export const WEEKDAYS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
 
 /** Farben für die Tages-Notiz (Leiste im Kalender). Die IDs werden gespeichert – bestehende nicht umbenennen. */
