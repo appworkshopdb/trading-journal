@@ -5,7 +5,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { uid } from '../utils.js';
 
-const DAY_COLS = 'date, pnl, note, tags, images, updated_at';
+const DAY_COLS = 'date, pnl, note, note_color, tags, images, fields, updated_at';
 const NOTE_COLS = 'id, title, body, pinned, created_at, updated_at';
 const CHECK_COLS = 'id, title, items, position, created_at, updated_at';
 
@@ -16,7 +16,7 @@ export function createSupabaseAdapter(cfg) {
   const bucket = cfg.STORAGE_BUCKET || 'screenshots';
   let user = null;
   const now = () => new Date().toISOString();
-  const rowToDay = (r) => ({ ...r, pnl: r.pnl == null ? null : Number(r.pnl), tags: r.tags || [], images: r.images || [] });
+  const rowToDay = (r) => ({ ...r, pnl: r.pnl == null ? null : Number(r.pnl), tags: r.tags || [], images: r.images || [], fields: r.fields || [] });
 
   return {
     mode: 'supabase',
@@ -41,7 +41,7 @@ export function createSupabaseAdapter(cfg) {
       return rows.map(rowToDay);
     },
     async saveDay(day) {
-      const row = { user_id: user.id, date: day.date, pnl: day.pnl, note: day.note || '', tags: day.tags || [], images: day.images || [], updated_at: now() };
+      const row = { user_id: user.id, date: day.date, pnl: day.pnl, note: day.note || '', note_color: day.note_color || null, tags: day.tags || [], images: day.images || [], fields: day.fields || [], updated_at: now() };
       const saved = must(await sb.from('day_entries').upsert(row, { onConflict: 'user_id,date' }).select(DAY_COLS).single());
       return rowToDay(saved);
     },
