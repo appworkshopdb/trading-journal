@@ -14,9 +14,21 @@ export function detailPanel(state, actions) {
   // Werte dieses Eintrags; alte Einträge (Liste mit Namen) werden umgewandelt, ihre Namen werden zur Vorlage, falls noch keine existiert
   const tpl = state.fieldTemplate;
   const values = { ...fieldValues(entry.fields) };
-  if (Array.isArray(entry.fields) && entry.fields.length && !tpl.left.length && !tpl.right.length) {
-    entry.fields.forEach((f, i) => (i % 2 ? tpl.right : tpl.left).push({ id: f.id, label: f.label || '' }));
-    actions.saveFieldTemplate(tpl);
+  if (Array.isArray(entry.fields) && entry.fields.length) {
+    const all = [...tpl.left, ...tpl.right];
+    let changed = false;
+    if (!all.length) {
+      // Alte Einträge: `value` war der Feldname (Kästchen links), `label` der Text -> Vorlage aus den Namen bilden
+      entry.fields.forEach((f, i) => (i % 2 ? tpl.right : tpl.left).push({ id: f.id, label: f.value || '' }));
+      changed = true;
+    } else {
+      // Reparatur einer früheren Umwandlung, bei der Name und Text vertauscht wurden
+      for (const f of entry.fields) {
+        const t = all.find((x) => x.id === f.id);
+        if (t && f.value && t.label === (f.label || '') && t.label !== f.value) { t.label = f.value; changed = true; }
+      }
+    }
+    if (changed) actions.saveFieldTemplate(tpl);
   }
   const title = periodTitle(iso, { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' });
   const pnl = isMonthKey(iso) ? monthTotal(state.days, iso) : entry.pnl; // Monat: Summe der Tage (+ eigener Anteil)

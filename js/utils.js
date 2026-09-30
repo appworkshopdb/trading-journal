@@ -94,9 +94,9 @@ export function debounce(fn, ms) {
   return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); };
 }
 
-/** Feldwerte eines Eintrags als Objekt { feldId: wert } (alte Einträge hatten eine Liste [{id, value, label}]) */
+/** Feldwerte eines Eintrags als Objekt { feldId: wert } (alte Einträge hatten eine Liste [{id, value, label}]; in der alten Oberfläche war `value` der Feldname und `label` der Text) */
 export function fieldValues(f) {
-  if (Array.isArray(f)) return Object.fromEntries(f.map((x) => [x.id, x.value || '']));
+  if (Array.isArray(f)) return Object.fromEntries(f.map((x) => [x.id, x.label || '']));
   return f && typeof f === 'object' ? f : {};
 }
 export const hasFieldValues = (f) => Object.values(fieldValues(f)).some((v) => String(v ?? '').trim());
