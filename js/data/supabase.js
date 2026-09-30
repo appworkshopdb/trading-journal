@@ -12,7 +12,8 @@ const CHECK_COLS = 'id, title, items, position, created_at, updated_at';
 function must({ data, error }) { if (error) throw error; return data; }
 
 export function createSupabaseAdapter(cfg) {
-  const sb = createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY);
+  // Sitzung im Browser speichern und automatisch erneuern: Anmeldung nur einmal pro Gerät nötig
+  const sb = createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY, { auth: { persistSession: true, autoRefreshToken: true } });
   const bucket = cfg.STORAGE_BUCKET || 'screenshots';
   let user = null;
   const now = () => new Date().toISOString();
