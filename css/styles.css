@@ -209,7 +209,8 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
 .note-body { flex: 1; }
 
 /* Bilder */
-.image-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; } /* bis zu 3 nebeneinander, ab dem 4. Bild neue Zeile */
+.image-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+.image-grid .thumb { flex: 0 0 calc((100% - 20px) / 3); } /* bis zu 3 nebeneinander, ab dem 4. Bild neue Zeile */
 .thumb { position: relative; margin: 0; aspect-ratio: 16 / 10; border-radius: 8px; overflow: hidden; background: var(--bg-elev2); border: 1px solid var(--border); }
 .thumb-open { width: 100%; height: 100%; display: block; }
 .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -357,3 +358,10 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
 .stat-value, .day-pnl, .day-num, .mini-sum, .detail-pnl, .field-val, .year-select, .pnl-input,
 .field input.pnl-gain, .field input.pnl-loss { font-family: var(--font-num); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
 .stat-label, .field > span, .field-head, .weekdays span { letter-spacing: 0.07em; }
+
+/* Checklisten-Übersicht */
+.checklist-overview { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.checklist-row { width: 100%; display: flex; align-items: center; gap: 10px; text-align: left; padding: 14px 12px; background: var(--bg-elev2); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text); }
+.checklist-row:hover { border-color: var(--accent); }
+.checklist-row-title { flex: 1; min-width: 0; font-weight: 700; word-break: break-word; }
+.checklist-row-caret { font-size: 20px; color: var(--text-muted); }
