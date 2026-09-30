@@ -319,15 +319,16 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
 .detail-pnl { font-weight: 700; margin-left: 4px; font-variant-numeric: tabular-nums; }
 .detail-fields { display: flex; flex-direction: column; gap: 12px; padding-top: 14px; border-top: 1px solid var(--border); }
 .field-cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 0; align-items: stretch; } /* zwei feste Spalten, durch eine Linie getrennt */
-.field-col { display: flex; flex-direction: column; gap: 8px; min-width: 0; padding-right: 14px; }
+.field-col { display: flex; flex-direction: column; gap: 0; min-width: 0; padding-right: 14px; }
 .field-col + .field-col { padding-right: 0; padding-left: 14px; border-left: 1px solid var(--text-muted); }
-/* Jedes Feld ist ein Kasten mit Umrandung: links der Feldname, rechts der Text dazu */
-.field-row { display: flex; align-items: stretch; min-width: 0; border: 1px solid var(--accent); border-radius: 8px; overflow: hidden; background: var(--bg); }
-.field-val, .field-label { background: transparent; border: 0; outline: none; min-width: 0; padding: 8px; }
-.field-label { flex: 0 0 38%; width: 38%; font-family: var(--font-num); font-size: 13px; font-weight: 700; background: var(--bg-elev2); border-right: 1px solid var(--accent); }
-.field-val { flex: 1; }
-.field-row .item-del { align-self: center; }
-.field-row:focus-within { box-shadow: 0 0 0 1px var(--accent); }
+/* Variante B "Liste": keine Kästen, nur eine dünne Trennlinie unter jedem Feld; links der Name (gedämpft), rechts der Text */
+.field-row { display: flex; align-items: center; min-width: 0; border-bottom: 1px solid var(--border); }
+.field-val, .field-label { background: transparent; border: 0; outline: none; min-width: 0; padding: 10px 2px; }
+.field-label { flex: 0 0 38%; width: 38%; font-family: var(--font-num); font-size: 13px; font-weight: 700; color: var(--text-muted); }
+.field-label::placeholder { color: var(--text-muted); opacity: 0.6; }
+.field-val { flex: 1; color: var(--text); }
+.field-row:focus-within { border-bottom-color: var(--accent); }
+.field-col .dashed-btn { margin-top: 10px; }
 .dashed-btn { align-self: flex-start; background: transparent; border: 1px dashed var(--border); color: var(--text-muted); border-radius: 8px; padding: 8px 14px; font-size: 14px; }
 .dashed-btn:hover { border-color: var(--accent); color: var(--text); }
 
@@ -370,8 +371,8 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
   .day-open { padding: 2px 5px; font-size: 10px; }
   /* Handy: Bezeichnung über dem Wert, damit zwei Spalten schmal noch lesbar bleiben */
   .field-row { flex-wrap: wrap; }
-  .field-label { width: 100%; flex: 0 0 100%; border-right: 0; border-bottom: 1px solid var(--accent); }
-  .field-val { width: 0; min-width: 0; }
+  .field-label { width: 100%; flex: 0 0 100%; padding-bottom: 0; }
+  .field-val { width: 0; min-width: 0; padding-top: 4px; }
 }
 
 /* Sehr schmale Handys: "Heute" ausblenden (der Monatsname springt ebenfalls zu heute), damit die Topbar passt */
