@@ -175,3 +175,8 @@ Vertrag in `js/data/index.js` dokumentieren, Laden in `loadAll()` ergänzen.
 * Ein Benutzer. Multi-User wäre über RLS bereits abgesichert, aber die UI kennt keine Teams.
 * Signierte Bild-URLs werden pro Sitzung gecacht (`imageUrlCache` in `detail.js`), laufen nach 1 h ab –
   nach Ablauf einfach Tab wechseln/neu laden.
+
+## Nachtrag UI
+- Bilder im Detailbereich: Flex-Raster, zentriert, 3 pro Zeile; unvollständige letzte Zeile ebenfalls zentriert.
+- Checklisten-Tab: Übersicht aller Listen (`state.openChecklist === null`); Tippen öffnet eine Liste (abhaken, Stift = Bearbeiten, „‹ Alle Listen" zurück).
+- Tag-Popup hat keinen Auto-Fokus (Tastatur erscheint erst beim Antippen eines Feldes).
