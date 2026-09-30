@@ -6,7 +6,7 @@ import { renderCalendar } from './calendar.js';
 import { renderSidebar } from './sidebar.js';
 import { renderDayModal } from './daymodal.js';
 import { initSplitter } from './splitter.js';
-import { MONTHS, todayISO, uid, fromISO } from './utils.js';
+import { MONTHS, todayISO, uid } from './utils.js';
 
 const $ = (id) => document.getElementById(id);
 let db; // Daten-Adapter (siehe js/data/index.js)
@@ -58,6 +58,14 @@ const actions = {
   closePopup() { setState({ popupDate: null }, ['modal']); },
   async savePopup(iso, patch) { actions.closePopup(); await actions.updateDay(iso, patch); },
   async clearPopup(iso) { actions.closePopup(); await actions.clearDay(iso); },
+  // Handy: "Öffnen" im Popup speichert die Eingaben und wechselt direkt in den Detailbereich des Tages
+  async savePopupAndOpen(iso, patch) {
+    const hasData = state.days[iso] || patch.pnl != null || (patch.note || '').trim();
+    actions.closePopup();
+    const saving = hasData ? actions.updateDay(iso, patch) : null; // aktualisiert den State sofort, speichert im Hintergrund
+    actions.openDetail(iso);
+    await saving;
+  },
   openDetail(iso) { setState({ selectedDate: iso, detailDate: iso, popupDate: null }); },
   closeDetail() { setState({ detailDate: null }); },
   refreshSidebar(focusField = null) { setState({ focusField }, ['sidebar']); },
@@ -76,7 +84,7 @@ const actions = {
     await ensureYear(t.getFullYear());
     setState({ year: t.getFullYear(), month: t.getMonth(), selectedDate: todayISO() });
   },
-  setSideTab(tab) { setState({ sideTab: tab, detailDate: null }); },
+  setSideTab(tab) { setState({ sideTab: tab, detailDate: null, editingChecklist: null }); },
 
   // Tage
   async updateDay(iso, patch) {
@@ -149,8 +157,10 @@ const actions = {
   async newChecklist() {
     const cl = { id: uid(), title: '', items: [], position: state.checklists.length, created_at: new Date().toISOString() };
     const saved = await persist(() => db.saveChecklist(cl));
-    setState({ checklists: [...state.checklists, saved || cl], focusChecklist: cl.id });
+    // Neue Liste öffnet direkt in der Bearbeitungsansicht, Fokus auf dem Titel
+    setState({ checklists: [...state.checklists, saved || cl], focusTitle: cl.id, editingChecklist: cl.id });
   },
+  editChecklist(id) { setState({ editingChecklist: id }, ['sidebar']); },
   async updateChecklist(id, patch, rerender = false, focusId = null) {
     const cl = state.checklists.find((c) => c.id === id);
     if (!cl) return;
@@ -208,7 +218,6 @@ function bindTopbar() {
   $('yearSelect').onchange = (e) => actions.setYear(Number(e.target.value));
   for (const b of document.querySelectorAll('.view-toggle button')) b.onclick = () => actions.setView(b.dataset.view);
   for (const b of document.querySelectorAll('#sideTabs button[data-tab]')) b.onclick = () => actions.setSideTab(b.dataset.tab);
-  $('tabOpenDay').onclick = () => actions.openDetail(state.selectedDate); // nur auf dem Handy sichtbar (CSS)
   $('lightbox').onclick = () => $('lightbox').classList.add('hidden');
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') { $('lightbox').classList.add('hidden'); if (state.popupDate) actions.closePopup(); }
@@ -234,14 +243,7 @@ function bindAuth() {
 
 // ---------------------------------------------------------------- Render + Start
 
-/** Beschriftung des "Öffnen"-Buttons neben den Tabs (Handy): zeigt, welcher Tag geöffnet wird */
-function renderOpenButton() {
-  const d = fromISO(state.selectedDate);
-  $('tabOpenDay').textContent = `Öffnen · ${d.getDate()}.${d.getMonth() + 1}.`;
-}
-
 function render(_s, parts) {
-  renderOpenButton();
   const all = !parts;
   if (all || parts.includes('topbar')) renderTopbar();
   if (all || parts.includes('calendar')) renderCalendar($('calendarPane'), state, actions);

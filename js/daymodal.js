@@ -76,14 +76,14 @@ export function renderDayModal(root, state, actions) {
   });
   paintColor();
 
-  const save = (ev) => {
-    ev.preventDefault();
+  const collect = () => {
     const g = parseAmount(gain.value);
     const v = parseAmount(loss.value);
     // Gewinn und Verlust zusammen ergeben das Tagesergebnis; beide leer = kein Ergebnis
     const result = g == null && v == null ? null : Math.abs(g || 0) - Math.abs(v || 0);
-    actions.savePopup(iso, { pnl: result, note: note.value, note_color: colorId });
+    return { pnl: result, note: note.value, note_color: colorId };
   };
+  const save = (ev) => { ev.preventDefault(); actions.savePopup(iso, collect()); };
 
   const form = h('form', { class: 'day-modal', onSubmit: save },
     h('div', { class: 'modal-head' },
@@ -94,6 +94,8 @@ export function renderDayModal(root, state, actions) {
       h('label', { class: 'field' }, h('span', {}, `Verlust (${CONFIG.CURRENCY})`), loss)),
     h('label', { class: 'field' }, h('span', {}, 'Notiz'), note),
     h('div', { class: 'field' }, h('span', { id: 'noteColorLabel' }, 'Farbe der Notiz'), trigger, list),
+    // Nur auf dem Handy sichtbar (CSS): dort fehlt "Öffnen" in der Kalenderzelle
+    h('button', { type: 'button', class: 'modal-open', onClick: () => actions.savePopupAndOpen(iso, collect()) }, 'Öffnen · Bilder & Auswertung'),
     h('div', { class: 'modal-actions' },
       entry && h('button', { type: 'button', class: 'text-btn danger',
         onClick: () => { if (confirm('Alle Einträge dieses Tages löschen?')) actions.clearPopup(iso); } }, 'Tag leeren'),

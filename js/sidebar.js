@@ -63,10 +63,14 @@ function checklistsPanel(state, actions) {
   );
 }
 
+const PENCIL = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>';
+
 function checklistCard(cl, state, actions) {
   const items = cl.items || [];
   const done = items.filter((i) => i.done).length;
-  const titleSave = debounce(() => actions.updateChecklist(cl.id, {}), 500); // cl ist das State-Objekt
+  const editing = state.editingChecklist === cl.id;
+  // cl und seine Punkte sind State-Objekte: Eingaben werden direkt eingetragen, nur das Speichern wird entprellt
+  const save = debounce(() => actions.updateChecklist(cl.id, {}), 500);
 
   // Neuer Punkt: Text + optionaler Infotext; Enter in einem der beiden Felder fügt hinzu
   const addItem = () => {
@@ -80,12 +84,40 @@ function checklistCard(cl, state, actions) {
   const infoInput = h('input', { type: 'text', class: 'add-item add-info', placeholder: 'Infotext (optional) – Enter', 'aria-label': 'Infotext zum Punkt', onKeydown: onEnter });
   if (state.focusChecklist === cl.id) setTimeout(() => pointInput.focus(), 0);
 
+  const delBtn = h('button', { class: 'text-btn danger', title: 'Liste löschen', 'aria-label': 'Liste löschen', onClick: () => { if (confirm('Liste löschen?')) actions.deleteChecklist(cl.id); } }, '×');
+
+  // ---------- Bearbeitungsansicht: Titel + Text und Infotext jedes Punkts
+  if (editing) {
+    const titleInput = h('input', { type: 'text', class: 'checklist-title editing', placeholder: 'Titel der Liste', 'aria-label': 'Titel der Liste', value: cl.title || '',
+      onInput: (ev) => { cl.title = ev.target.value; save(); } });
+    if (state.focusTitle === cl.id) { state.focusTitle = null; setTimeout(() => titleInput.focus(), 0); }
+    const finish = () => {
+      actions.updateChecklist(cl.id, { items: items.filter((i) => (i.text || '').trim()) }); // leere Punkte verwerfen
+      actions.editChecklist(null);
+    };
+    return h('section', { class: 'checklist is-editing' },
+      h('div', { class: 'checklist-head' }, titleInput, h('button', { class: 'primary small', onClick: finish }, 'Fertig'), delBtn),
+      h('ul', { class: 'check-items' }, items.map((it) => h('li', { class: 'edit-item' },
+        h('div', { class: 'edit-item-fields' },
+          h('input', { type: 'text', class: 'edit-input', placeholder: 'Punkt', 'aria-label': 'Text des Punkts', value: it.text || '',
+            onInput: (ev) => { it.text = ev.target.value; save(); } }),
+          h('input', { type: 'text', class: 'edit-input info', placeholder: 'Infotext (optional)', 'aria-label': 'Infotext des Punkts', value: it.info || '',
+            onInput: (ev) => { it.info = ev.target.value; save(); } })),
+        h('button', { class: 'item-del', title: 'Punkt entfernen', 'aria-label': 'Punkt entfernen',
+          onClick: () => actions.updateChecklist(cl.id, { items: items.filter((i) => i.id !== it.id) }, true) }, '×'),
+      ))),
+      h('div', { class: 'add-row' }, pointInput, infoInput),
+    );
+  }
+
+  // ---------- Normalansicht
   return h('section', { class: 'checklist' },
     h('div', { class: 'checklist-head' },
-      h('input', { type: 'text', class: 'checklist-title', placeholder: 'Titel der Liste', value: cl.title || '', onInput: (ev) => { cl.title = ev.target.value; titleSave(); } }),
+      h('span', { class: 'checklist-title-static' }, cl.title || 'Ohne Titel'),
       h('span', { class: 'muted small' }, `${done}/${items.length}`),
-      h('button', { class: 'text-btn', title: 'Alle Haken entfernen', onClick: () => actions.updateChecklist(cl.id, { items: items.map((i) => ({ ...i, done: false })) }, true) }, '↺'),
-      h('button', { class: 'text-btn danger', title: 'Liste löschen', onClick: () => { if (confirm('Liste löschen?')) actions.deleteChecklist(cl.id); } }, '×'),
+      h('button', { class: 'text-btn', title: 'Alle Haken entfernen', 'aria-label': 'Alle Haken entfernen', onClick: () => actions.updateChecklist(cl.id, { items: items.map((i) => ({ ...i, done: false })) }, true) }, '↺'),
+      h('button', { class: 'text-btn icon-edit', title: 'Liste bearbeiten', 'aria-label': 'Liste bearbeiten', html: PENCIL, onClick: () => actions.editChecklist(cl.id) }),
+      delBtn,
     ),
     h('ul', { class: 'check-items' }, items.map((it) => h('li', { class: it.done ? 'done' : '' },
       h('label', {},
@@ -93,7 +125,7 @@ function checklistCard(cl, state, actions) {
         h('span', { class: 'item-body' },
           h('span', { class: 'item-text' }, it.text),
           it.info && h('span', { class: 'item-info' }, it.info))),
-      h('button', { class: 'item-del', title: 'Entfernen', onClick: () => actions.updateChecklist(cl.id, { items: items.filter((i) => i.id !== it.id) }, true) }, '×'),
+      h('button', { class: 'item-del', title: 'Entfernen', 'aria-label': 'Punkt entfernen', onClick: () => actions.updateChecklist(cl.id, { items: items.filter((i) => i.id !== it.id) }, true) }, '×'),
     ))),
     h('div', { class: 'add-row' }, pointInput, infoInput),
   );
