@@ -209,8 +209,13 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
 .mini-month > .mini-head, .mini-month > .day-note, .mini-month > .mini-grid, .mini-month > .day-foot { pointer-events: none; }
 .mini-month > .day-foot { margin-top: 6px; justify-content: flex-end; }
 .mini-month .day-note { margin-bottom: 4px; }
-.mini-month .day-note { flex: 1; min-height: 0; overflow: hidden; }
-.mini-month .day-note-text { -webkit-line-clamp: 6; }
+.mini-month .day-note { min-height: 0; overflow: hidden; }
+.mini-month .day-note-text { -webkit-line-clamp: 3; }
+@media (max-width: 640px), (max-height: 480px) {
+  .mini-month .mini-grid { display: none; }
+  .mini-month .day-note { flex: 1; }
+  .mini-month .day-note-text { -webkit-line-clamp: 6; }
+}
 .mini-head .mark { font-style: normal; font-size: 10px; color: var(--text-muted); }
 .mini-head { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; margin-bottom: 6px; min-width: 0; }
 .mini-title { font-weight: 600; font-size: 14px; white-space: nowrap; flex-shrink: 0; }
