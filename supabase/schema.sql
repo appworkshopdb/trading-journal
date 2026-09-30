@@ -15,8 +15,10 @@ create table if not exists public.day_entries (
   date        date not null,
   pnl         numeric(14,2),                 -- null = kein Ergebnis eingetragen
   note        text not null default '',
+  note_color  text,                          -- Farb-ID der Notiz: blau|orange|lila|gelb|pink|grau
   tags        text[] not null default '{}',
   images      jsonb not null default '[]',   -- [{ "id": "...", "path": "<user_id>/<date>/<file>", "name": "..." }]
+  fields      jsonb not null default '[]',   -- Auswertung des Tages: [{ "id": "...", "value": "...", "label": "..." }]
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now(),
   unique (user_id, date)
@@ -43,6 +45,10 @@ create table if not exists public.checklists (
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now()
 );
+
+-- Nachrüsten für bereits bestehende Projekte (create table if not exists ergänzt keine Spalten):
+alter table public.day_entries add column if not exists note_color text;
+alter table public.day_entries add column if not exists fields jsonb not null default '[]';
 
 create index if not exists day_entries_user_date_idx on public.day_entries (user_id, date);
 create index if not exists notes_user_updated_idx    on public.notes (user_id, updated_at desc);
