@@ -52,6 +52,18 @@ function noteEditor(note, actions) {
 
 // ======================= Checklisten =======================
 
+/** Anteil erledigter Punkte in % und ob der Richtwert erreicht ist (leere Liste: nie erlaubt) */
+function checkStatus(cl, threshold) {
+  const items = cl.items || [];
+  const done = items.filter((i) => i.done).length;
+  const pct = items.length ? (done / items.length) * 100 : 0;
+  return { done, total: items.length, pct, shown: Math.round(pct), allowed: items.length > 0 && pct >= threshold };
+}
+
+function statusBadge(st) {
+  return h('span', { class: `allow-badge ${st.allowed ? 'ok' : 'no'}` }, st.allowed ? '✓ Erlaubt' : 'Noch nicht erlaubt');
+}
+
 function checklistsPanel(state, actions) {
   const open = state.checklists.find((c) => c.id === state.openChecklist);
   if (open) {
@@ -64,15 +76,20 @@ function checklistsPanel(state, actions) {
   return h('div', { class: 'panel checklists-panel' },
     h('div', { class: 'panel-head' },
       h('h2', { class: 'panel-title' }, 'Checklisten'),
+      h('label', { class: 'threshold-box', title: 'Richtwert: ab diesem Anteil erledigter Punkte ist ein Trade erlaubt' },
+        h('span', {}, 'Richtwert'),
+        h('input', { type: 'number', class: 'threshold-input', min: 0, max: 100, step: 1, inputmode: 'numeric', value: state.threshold, 'aria-label': 'Richtwert in Prozent',
+          onChange: (ev) => actions.setThreshold(ev.target.value) }),
+        h('span', {}, '%')),
       h('button', { class: 'primary small', onClick: () => actions.newChecklist() }, '+ Neue Liste')),
     state.checklists.length
       ? h('ul', { class: 'checklist-overview' }, state.checklists.map((cl) => {
-        const items = cl.items || [];
-        const done = items.filter((i) => i.done).length;
+        const st = checkStatus(cl, state.threshold);
         return h('li', {},
           h('button', { class: 'checklist-row', onClick: () => actions.openChecklist(cl.id) },
             h('span', { class: 'checklist-row-title' }, cl.title || 'Ohne Titel'),
-            h('span', { class: 'muted small' }, `${done}/${items.length}`),
+            h('span', { class: 'muted small' }, `${st.done}/${st.total} · ${st.shown} %`),
+            statusBadge(st),
             h('span', { class: 'checklist-row-caret', 'aria-hidden': 'true' }, '›')));
       }))
       : h('p', { class: 'muted' }, 'z.B. „Vor dem Trade", „Tagesroutine", „Wochenreview".'),
@@ -127,14 +144,23 @@ function checklistCard(cl, state, actions) {
   }
 
   // ---------- Normalansicht
+  const st = checkStatus(cl, state.threshold);
   return h('section', { class: 'checklist' },
     h('div', { class: 'checklist-head' },
       h('span', { class: 'checklist-title-static' }, cl.title || 'Ohne Titel'),
-      h('span', { class: 'muted small' }, `${done}/${items.length}`),
+      h('span', { class: 'muted small' }, `${st.done}/${st.total}`),
       h('button', { class: 'text-btn', title: 'Alle Haken entfernen', 'aria-label': 'Alle Haken entfernen', onClick: () => actions.updateChecklist(cl.id, { items: items.map((i) => ({ ...i, done: false })) }, true) }, '↺'),
       h('button', { class: 'text-btn icon-edit', title: 'Liste bearbeiten', 'aria-label': 'Liste bearbeiten', html: PENCIL, onClick: () => actions.editChecklist(cl.id) }),
       delBtn,
     ),
+    h('div', { class: `gauge ${st.allowed ? 'ok' : 'no'}` },
+      h('div', { class: 'gauge-top' },
+        h('span', { class: 'gauge-pct' }, `${st.shown} %`),
+        h('span', { class: 'muted small' }, `Richtwert ${state.threshold} %`),
+        statusBadge(st)),
+      h('div', { class: 'gauge-bar' },
+        h('div', { class: 'gauge-fill', style: `width:${Math.min(100, st.pct)}%` }),
+        h('div', { class: 'gauge-mark', style: `left:${Math.min(100, state.threshold)}%` }))),
     h('ul', { class: 'check-items' }, items.map((it) => h('li', { class: it.done ? 'done' : '' },
       h('label', {},
         h('input', { type: 'checkbox', checked: it.done, onChange: (ev) => actions.updateChecklist(cl.id, { items: items.map((i) => i.id === it.id ? { ...i, done: ev.target.checked } : i) }, true) }),

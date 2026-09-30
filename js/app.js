@@ -26,7 +26,8 @@ async function loadAll() {
   state.loadedRanges = new Set();
   const [notes, checklists] = await Promise.all([db.listNotes(), db.listChecklists()]);
   await ensureYear(state.year);
-  setState({ notes, checklists });
+  const threshold = checklists.find((c) => c.threshold != null)?.threshold ?? 85;
+  setState({ notes, checklists, threshold });
 }
 
 // ---------------------------------------------------------------- Speichern (mit Statusanzeige)
@@ -155,10 +156,19 @@ const actions = {
 
   // Checklisten
   async newChecklist() {
-    const cl = { id: uid(), title: '', items: [], position: state.checklists.length, created_at: new Date().toISOString() };
+    const cl = { id: uid(), title: '', items: [], threshold: state.threshold, position: state.checklists.length, created_at: new Date().toISOString() };
     const saved = await persist(() => db.saveChecklist(cl));
     // Neue Liste öffnet direkt in der Bearbeitungsansicht, Fokus auf dem Titel
     setState({ checklists: [...state.checklists, saved || cl], focusTitle: cl.id, editingChecklist: cl.id, openChecklist: cl.id });
+  },
+  // Globaler Richtwert (%): wird an allen Listen gespeichert, damit er auf allen Geräten gleich ist
+  async setThreshold(value) {
+    const t = Math.max(0, Math.min(100, Math.round(Number(value))));
+    if (!Number.isFinite(t)) return setState({}, ['sidebar']);
+    state.threshold = t;
+    for (const cl of state.checklists) cl.threshold = t;
+    setState({}, ['sidebar']);
+    await persist(async () => { for (const cl of state.checklists) await db.saveChecklist(cl); });
   },
   openChecklist(id) { setState({ openChecklist: id, editingChecklist: null }, ['sidebar']); },
   editChecklist(id) { setState({ editingChecklist: id }, ['sidebar']); },

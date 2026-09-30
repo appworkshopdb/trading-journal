@@ -62,7 +62,7 @@ export function detailPanel(state, actions) {
         h('span', {}, `Screenshots (${entry.images?.length || 0})`),
         h('button', { class: 'text-btn', onClick: () => fileInput.click() }, '+ Bild hochladen'),
         fileInput),
-      imageGrid(entry, iso, actions)),
+      imageGrid(entry, iso, actions, saveDebounced)),
 
     h('div', { class: 'detail-fields' },
       h('div', { class: 'field-head' }, h('span', {}, 'Auswertung des Tages')),
@@ -73,17 +73,21 @@ export function detailPanel(state, actions) {
   );
 }
 
-function imageGrid(entry, iso, actions) {
+function imageGrid(entry, iso, actions, saveDebounced) {
   const imgs = entry.images || [];
   if (!imgs.length) return h('p', { class: 'muted small' }, 'Noch keine Bilder.');
   return h('div', { class: 'image-grid' }, imgs.map((img) => {
-    const el = h('img', { alt: img.name || 'Screenshot', loading: 'lazy' });
+    const el = h('img', { alt: img.caption || img.name || 'Screenshot', loading: 'lazy' });
     const cached = imageUrlCache.get(img.path);
     if (cached) el.src = cached;
     else actions.imageUrl(img.path).then((url) => { imageUrlCache.set(img.path, url); el.src = url; }).catch(() => el.classList.add('broken'));
-    return h('figure', { class: 'thumb' },
-      h('button', { class: 'thumb-open', onClick: () => actions.openLightbox(el.src) }, el),
-      h('button', { class: 'thumb-del', title: 'Bild löschen', 'aria-label': 'Bild löschen', onClick: () => { if (confirm('Bild löschen?')) actions.removeImage(iso, img); } }, '×'),
-    );
+    // Optionale Beschriftung: direkt am Bildobjekt eintragen, Speichern entprellt
+    const caption = h('input', { type: 'text', class: 'thumb-caption', placeholder: 'Beschriftung (optional)', 'aria-label': 'Bildbeschriftung', value: img.caption || '',
+      onInput: (ev) => { img.caption = ev.target.value; saveDebounced({ images: entry.images }); } });
+    return h('div', { class: 'thumb-card' },
+      h('figure', { class: 'thumb' },
+        h('button', { class: 'thumb-open', onClick: () => actions.openLightbox(el.src) }, el),
+        h('button', { class: 'thumb-del', title: 'Bild löschen', 'aria-label': 'Bild löschen', onClick: () => { if (confirm('Bild löschen?')) actions.removeImage(iso, img); } }, '×')),
+      caption);
   }));
 }
