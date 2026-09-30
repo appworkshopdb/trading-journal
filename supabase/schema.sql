@@ -24,6 +24,21 @@ create table if not exists public.day_entries (
   unique (user_id, date)
 );
 
+-- Ein Eintrag pro Monat (Jahresansicht): eigene Notiz, Farbe, Bilder, Auswertung; pnl = optionaler Zuschlag zur Summe der Tage
+create table if not exists public.month_entries (
+  id          uuid primary key default gen_random_uuid(),
+  user_id     uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  month       text not null,                 -- 'YYYY-MM'
+  pnl         numeric(14,2),
+  note        text not null default '',
+  note_color  text,
+  images      jsonb not null default '[]',
+  fields      jsonb not null default '[]',
+  created_at  timestamptz not null default now(),
+  updated_at  timestamptz not null default now(),
+  unique (user_id, month)
+);
+
 -- Freie Notizen (Strategien, Regeln, Erkenntnisse)
 create table if not exists public.notes (
   id          uuid primary key default gen_random_uuid(),
@@ -61,11 +76,17 @@ create index if not exists checklists_user_pos_idx   on public.checklists (user_
 -- ---------------------------------------------------------------------
 
 alter table public.day_entries enable row level security;
+alter table public.month_entries enable row level security;
 alter table public.notes       enable row level security;
 alter table public.checklists  enable row level security;
 
 drop policy if exists "own day_entries" on public.day_entries;
 create policy "own day_entries" on public.day_entries
+  for all to authenticated
+  using (user_id = auth.uid()) with check (user_id = auth.uid());
+
+drop policy if exists "own month_entries" on public.month_entries;
+create policy "own month_entries" on public.month_entries
   for all to authenticated
   using (user_id = auth.uid()) with check (user_id = auth.uid());
 
