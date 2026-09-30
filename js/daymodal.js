@@ -41,13 +41,40 @@ export function renderDayModal(root, state, actions) {
   const note = h('textarea', { class: 'note-area', rows: 4, placeholder: 'Kurze Notiz zum Tag …' });
   note.value = entry?.note || '';
 
+  // Eigene Dropdown-Liste, damit jede Farbe schon in der Liste sichtbar ist (ein <select> kann das nicht überall)
+  let colorId = noteColor(entry?.note_color).id;
   const dot = h('span', { class: 'color-dot' });
-  const colorSel = h('select', { 'aria-label': 'Farbe der Notiz' },
-    NOTE_COLORS.map((c) => h('option', { value: c.id }, c.name)));
-  colorSel.value = noteColor(entry?.note_color).id;
-  const paintDot = () => { dot.style.background = noteColor(colorSel.value).hex; };
-  colorSel.addEventListener('change', paintDot);
-  paintDot();
+  const colorName = h('span', { class: 'color-name' });
+  const trigger = h('button', { type: 'button', class: 'color-trigger', 'aria-haspopup': 'listbox', 'aria-expanded': 'false', 'aria-labelledby': 'noteColorLabel' },
+    dot, colorName, h('span', { class: 'color-caret', 'aria-hidden': 'true' }, '▾'));
+  const options = NOTE_COLORS.map((c) => h('li', { role: 'option', class: 'color-option', tabindex: '-1', dataset: { id: c.id } },
+    h('span', { class: 'color-dot', style: `background:${c.hex}` }), h('span', {}, c.name)));
+  const list = h('ul', { class: 'color-list hidden', role: 'listbox', 'aria-labelledby': 'noteColorLabel' }, options);
+
+  const paintColor = () => {
+    const c = noteColor(colorId);
+    dot.style.background = c.hex;
+    colorName.textContent = c.name;
+    for (const o of options) o.setAttribute('aria-selected', String(o.dataset.id === colorId));
+  };
+  const openList = (open) => {
+    list.classList.toggle('hidden', !open);
+    trigger.setAttribute('aria-expanded', String(open));
+    if (open) options.find((o) => o.dataset.id === colorId)?.focus();
+  };
+  const choose = (id) => { colorId = id; paintColor(); openList(false); trigger.focus(); };
+  trigger.addEventListener('click', () => openList(list.classList.contains('hidden')));
+  trigger.addEventListener('keydown', (ev) => { if (ev.key === 'ArrowDown') { ev.preventDefault(); openList(true); } });
+  options.forEach((o, i) => {
+    o.addEventListener('click', () => choose(o.dataset.id));
+    o.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); choose(o.dataset.id); }
+      else if (ev.key === 'ArrowDown' || ev.key === 'ArrowRight') { ev.preventDefault(); options[(i + 1) % options.length].focus(); }
+      else if (ev.key === 'ArrowUp' || ev.key === 'ArrowLeft') { ev.preventDefault(); options[(i - 1 + options.length) % options.length].focus(); }
+      else if (ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); openList(false); trigger.focus(); } // schließt nur die Liste, nicht das Popup
+    });
+  });
+  paintColor();
 
   const save = (ev) => {
     ev.preventDefault();
@@ -55,7 +82,7 @@ export function renderDayModal(root, state, actions) {
     const v = parseAmount(loss.value);
     // Gewinn und Verlust zusammen ergeben das Tagesergebnis; beide leer = kein Ergebnis
     const result = g == null && v == null ? null : Math.abs(g || 0) - Math.abs(v || 0);
-    actions.savePopup(iso, { pnl: result, note: note.value, note_color: colorSel.value });
+    actions.savePopup(iso, { pnl: result, note: note.value, note_color: colorId });
   };
 
   const form = h('form', { class: 'day-modal', onSubmit: save },
@@ -66,8 +93,7 @@ export function renderDayModal(root, state, actions) {
       h('label', { class: 'field' }, h('span', {}, `Gewinn (${CONFIG.CURRENCY})`), gain),
       h('label', { class: 'field' }, h('span', {}, `Verlust (${CONFIG.CURRENCY})`), loss)),
     h('label', { class: 'field' }, h('span', {}, 'Notiz'), note),
-    h('label', { class: 'field' }, h('span', {}, 'Farbe der Notiz'),
-      h('div', { class: 'color-row' }, dot, colorSel)),
+    h('div', { class: 'field' }, h('span', { id: 'noteColorLabel' }, 'Farbe der Notiz'), trigger, list),
     h('div', { class: 'modal-actions' },
       entry && h('button', { type: 'button', class: 'text-btn danger',
         onClick: () => { if (confirm('Alle Einträge dieses Tages löschen?')) actions.clearPopup(iso); } }, 'Tag leeren'),

@@ -6,7 +6,7 @@ import { renderCalendar } from './calendar.js';
 import { renderSidebar } from './sidebar.js';
 import { renderDayModal } from './daymodal.js';
 import { initSplitter } from './splitter.js';
-import { MONTHS, todayISO, uid } from './utils.js';
+import { MONTHS, todayISO, uid, fromISO } from './utils.js';
 
 const $ = (id) => document.getElementById(id);
 let db; // Daten-Adapter (siehe js/data/index.js)
@@ -207,7 +207,8 @@ function bindTopbar() {
   $('btnPeriod').onclick = () => actions.goToday();
   $('yearSelect').onchange = (e) => actions.setYear(Number(e.target.value));
   for (const b of document.querySelectorAll('.view-toggle button')) b.onclick = () => actions.setView(b.dataset.view);
-  for (const b of document.querySelectorAll('#sideTabs button')) b.onclick = () => actions.setSideTab(b.dataset.tab);
+  for (const b of document.querySelectorAll('#sideTabs button[data-tab]')) b.onclick = () => actions.setSideTab(b.dataset.tab);
+  $('tabOpenDay').onclick = () => actions.openDetail(state.selectedDate); // nur auf dem Handy sichtbar (CSS)
   $('lightbox').onclick = () => $('lightbox').classList.add('hidden');
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') { $('lightbox').classList.add('hidden'); if (state.popupDate) actions.closePopup(); }
@@ -233,7 +234,14 @@ function bindAuth() {
 
 // ---------------------------------------------------------------- Render + Start
 
+/** Beschriftung des "Öffnen"-Buttons neben den Tabs (Handy): zeigt, welcher Tag geöffnet wird */
+function renderOpenButton() {
+  const d = fromISO(state.selectedDate);
+  $('tabOpenDay').textContent = `Öffnen · ${d.getDate()}.${d.getMonth() + 1}.`;
+}
+
 function render(_s, parts) {
+  renderOpenButton();
   const all = !parts;
   if (all || parts.includes('topbar')) renderTopbar();
   if (all || parts.includes('calendar')) renderCalendar($('calendarPane'), state, actions);

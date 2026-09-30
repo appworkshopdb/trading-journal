@@ -5,14 +5,18 @@ export const MONTHS = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
 export const MONTHS_SHORT = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
 export const WEEKDAYS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
 
-/** Farben für die Tages-Notiz (Leiste im Kalender). Bewusst ohne Grün/Rot – die sind Gewinn/Verlust vorbehalten. */
+/** Farben für die Tages-Notiz (Leiste im Kalender). Die IDs werden gespeichert – bestehende nicht umbenennen. */
 export const NOTE_COLORS = [
-  { id: 'blau',   name: 'Blau',   hex: '#2962ff' },
-  { id: 'orange', name: 'Orange', hex: '#ff9800' },
-  { id: 'lila',   name: 'Lila',   hex: '#9c27b0' },
-  { id: 'gelb',   name: 'Gelb',   hex: '#fdd835' },
-  { id: 'pink',   name: 'Pink',   hex: '#e040fb' },
-  { id: 'grau',   name: 'Grau',   hex: '#787b86' },
+  { id: 'blau',    name: 'Blau',    hex: '#2962ff' },
+  { id: 'tuerkis', name: 'Türkis',  hex: '#00bcd4' },
+  { id: 'gruen',   name: 'Grün',    hex: '#00e676' },
+  { id: 'gelb',    name: 'Gelb',    hex: '#fdd835' },
+  { id: 'orange',  name: 'Orange',  hex: '#ff9800' },
+  { id: 'rot',     name: 'Rot',     hex: '#ff1744' },
+  { id: 'pink',    name: 'Pink',    hex: '#e040fb' },
+  { id: 'lila',    name: 'Lila',    hex: '#9c27b0' },
+  { id: 'weiss',   name: 'Weiß',    hex: '#ffffff' },
+  { id: 'grau',    name: 'Grau',    hex: '#787b86' },
 ];
 export const noteColor = (id) => NOTE_COLORS.find((c) => c.id === id) || NOTE_COLORS[NOTE_COLORS.length - 1];
 
