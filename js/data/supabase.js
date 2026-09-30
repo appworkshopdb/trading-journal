@@ -7,7 +7,7 @@ import { uid } from '../utils.js';
 
 const DAY_COLS = 'date, pnl, note, note_color, tags, images, fields, updated_at';
 const NOTE_COLS = 'id, title, body, pinned, created_at, updated_at';
-const CHECK_COLS = 'id, title, items, position, created_at, updated_at';
+const CHECK_COLS = 'id, title, items, position, threshold, created_at, updated_at';
 
 function must({ data, error }) { if (error) throw error; return data; }
 
@@ -65,7 +65,7 @@ export function createSupabaseAdapter(cfg) {
       return must(await sb.from('checklists').select(CHECK_COLS).order('position').order('created_at'));
     },
     async saveChecklist(cl) {
-      const row = { id: cl.id || uid(), user_id: user.id, title: cl.title || '', items: cl.items || [], position: cl.position ?? 0, updated_at: now() };
+      const row = { id: cl.id || uid(), user_id: user.id, title: cl.title || '', items: cl.items || [], position: cl.position ?? 0, threshold: cl.threshold ?? 85, updated_at: now() };
       return must(await sb.from('checklists').upsert(row, { onConflict: 'id' }).select(CHECK_COLS).single());
     },
     async deleteChecklist(id) { must(await sb.from('checklists').delete().eq('id', id)); },
