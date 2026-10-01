@@ -52,7 +52,7 @@ export function renderDayModal(root, state, actions) {
       h('label', { class: 'field' }, idx === 0 && h('span', {}, `Gewinn (${CONFIG.CURRENCY})`), row.gain),
       h('label', { class: 'field' }, idx === 0 && h('span', {}, `Verlust (${CONFIG.CURRENCY})`), row.loss),
       h('label', { class: 'field' }, idx === 0 && h('span', {}, 'RR'), row.rr),
-      idx > 0 && h('button', { type: 'button', class: 'text-btn trade-remove', 'aria-label': 'Trade entfernen',
+      h('button', { type: 'button', class: 'text-btn trade-remove', hidden: idx === 0 || null, 'aria-label': 'Trade entfernen',
         onClick: () => { tradeRows.splice(tradeRows.indexOf(row), 1); row.el.remove(); } }, '×'));
     tradeRows.push(row);
     tradesBox.append(row.el);

@@ -304,8 +304,8 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
 .modal-head h2 { flex: 1; margin: 0; font-size: 18px; }
 .modal-trades { display: flex; flex-direction: column; gap: 8px; }
 .trade-rows { display: flex; flex-direction: column; gap: 10px; }
-.trade-row { display: grid; grid-template-columns: 1fr 1fr 0.7fr; gap: 10px; align-items: end; position: relative; }
-.trade-row:has(.trade-remove) { grid-template-columns: 1fr 1fr 0.7fr auto; }
+.trade-row { display: grid; grid-template-columns: 1fr 1fr 0.7fr 28px; gap: 10px; align-items: end; position: relative; }
+.trade-remove[hidden] { display: block; visibility: hidden; }
 .trade-row .field input { min-width: 0; }
 .field input.pnl-rr { font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .add-trade { align-self: flex-start; color: var(--accent); font-weight: 600; }
