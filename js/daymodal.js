@@ -1,4 +1,4 @@
-// Popup zum Antippen eines Kalendertags: Gewinn, Verlust, Notiz, Notizfarbe.
+// Popup zum Antippen eines Kalendertags: Trades (Gewinn, Verlust, RR – optional mehrere), Notiz, Notizfarbe.
 // Wird nur neu gebaut, wenn sich der geöffnete Tag ändert – so gehen Eingaben bei Hintergrund-Renderings nicht verloren.
 
 import { h, periodTitle, isMonthKey, monthBreakdown, fmtMoney, signClass, NOTE_COLORS, noteColor } from './utils.js';
@@ -33,13 +33,31 @@ export function renderDayModal(root, state, actions) {
   const isMonth = isMonthKey(iso);
   const brk = isMonth ? monthBreakdown(state.days, iso) : null;
 
-  // Bestehendes Ergebnis auf Gewinn-/Verlustfeld verteilen
+  // Trades: je Zeile Gewinn, Verlust, RR. Ohne gespeicherte Trades wird das bisherige Tagesergebnis in Zeile 1 verteilt.
   const pnl = entry?.pnl ?? null;
-  const gainVal = pnl != null && pnl >= 0 ? toField(pnl) : '';
-  const lossVal = pnl != null && pnl < 0 ? toField(-pnl) : '';
-
-  const gain = h('input', { type: 'text', inputmode: 'decimal', class: 'pnl-gain', placeholder: '0,00', value: gainVal, 'aria-label': `Gewinn (${CONFIG.CURRENCY})` });
-  const loss = h('input', { type: 'text', inputmode: 'decimal', class: 'pnl-loss', placeholder: '0,00', value: lossVal, 'aria-label': `Verlust (${CONFIG.CURRENCY})` });
+  const initial = entry?.trades?.length
+    ? entry.trades
+    : [{ gain: pnl != null && pnl >= 0 ? pnl : null, loss: pnl != null && pnl < 0 ? -pnl : null, rr: null }];
+  const tradeRows = [];
+  const tradesBox = h('div', { class: 'trade-rows' });
+  const addTrade = (t = {}) => {
+    const mk = (cls, val, label, ph) => h('input', { type: 'text', inputmode: 'decimal', class: cls, placeholder: ph, value: val == null ? '' : toField(val), 'aria-label': label });
+    const row = {
+      gain: mk('pnl-gain', t.gain, `Gewinn (${CONFIG.CURRENCY})`, '0,00'),
+      loss: mk('pnl-loss', t.loss, `Verlust (${CONFIG.CURRENCY})`, '0,00'),
+      rr: mk('pnl-rr', t.rr, 'RR', '0,0'),
+    };
+    const idx = tradeRows.length;
+    row.el = h('div', { class: 'trade-row' },
+      h('label', { class: 'field' }, idx === 0 && h('span', {}, `Gewinn (${CONFIG.CURRENCY})`), row.gain),
+      h('label', { class: 'field' }, idx === 0 && h('span', {}, `Verlust (${CONFIG.CURRENCY})`), row.loss),
+      h('label', { class: 'field' }, idx === 0 && h('span', {}, 'RR'), row.rr),
+      h('button', { type: 'button', class: 'text-btn trade-remove', hidden: idx === 0 || null, 'aria-label': 'Trade entfernen',
+        onClick: () => { tradeRows.splice(tradeRows.indexOf(row), 1); row.el.remove(); } }, '×'));
+    tradeRows.push(row);
+    tradesBox.append(row.el);
+  };
+  initial.forEach(addTrade);
   const note = h('textarea', { class: 'note-area', rows: 4, placeholder: isMonth ? 'Kurze Notiz zum Monat …' : 'Kurze Notiz zum Tag …' });
   note.value = entry?.note || '';
 
@@ -79,11 +97,16 @@ export function renderDayModal(root, state, actions) {
   paintColor();
 
   const collect = () => {
-    const g = parseAmount(gain.value);
-    const v = parseAmount(loss.value);
-    // Gewinn und Verlust zusammen ergeben das Tagesergebnis; beide leer = kein Ergebnis
-    const result = g == null && v == null ? null : Math.abs(g || 0) - Math.abs(v || 0);
-    return { pnl: isMonth ? null : result, note: note.value, note_color: colorId }; // Monat: Ergebnis kommt aus den Tagen
+    const trades = tradeRows
+      .map((r) => ({ gain: parseAmount(r.gain.value), loss: parseAmount(r.loss.value), rr: parseAmount(r.rr.value) }))
+      .filter((t) => t.gain != null || t.loss != null || t.rr != null)
+      .map((t) => ({ gain: t.gain == null ? null : Math.abs(t.gain), loss: t.loss == null ? null : Math.abs(t.loss), rr: t.rr }));
+    // Gewinn und Verlust aller Trades ergeben das Tagesergebnis; alles leer = kein Ergebnis
+    const hasMoney = trades.some((t) => t.gain != null || t.loss != null);
+    const result = hasMoney ? trades.reduce((sum, t) => sum + (t.gain || 0) - (t.loss || 0), 0) : null;
+    // Trades werden nur gespeichert, wenn sie über einen einfachen Tagesgewinn/-verlust hinausgehen (mehrere Zeilen oder RR)
+    const detailed = trades.length > 1 || trades.some((t) => t.rr != null);
+    return { pnl: isMonth ? null : result, trades: isMonth || !detailed ? [] : trades, note: note.value, note_color: colorId }; // Monat: Ergebnis kommt aus den Tagen
   };
   const save = (ev) => { ev.preventDefault(); actions.savePopup(iso, collect()); };
 
@@ -103,9 +126,8 @@ export function renderDayModal(root, state, actions) {
             h('span', { class: 'ms-op' }, '='),
             h('div', { class: 'ms-cell' }, h('strong', { class: `ms-val ${signClass(brk.result)}` }, fmtMoney(brk.result, CONFIG.CURRENCY)), h('span', { class: 'ms-cap' }, 'Ergebnis')))
           : h('p', { class: 'muted small' }, 'Noch keine Tage mit Gewinn oder Verlust in diesem Monat.'))
-      : h('div', { class: 'modal-pnl' },
-        h('label', { class: 'field' }, h('span', {}, `Gewinn (${CONFIG.CURRENCY})`), gain),
-        h('label', { class: 'field' }, h('span', {}, `Verlust (${CONFIG.CURRENCY})`), loss)),
+      : h('div', { class: 'modal-trades' }, tradesBox,
+        h('button', { type: 'button', class: 'text-btn add-trade', onClick: () => addTrade() }, '+ weiterer Trade')),
     h('label', { class: 'field' }, h('span', {}, 'Notiz'), note),
     h('div', { class: 'field' }, h('span', { id: 'noteColorLabel' }, 'Farbe der Notiz'), trigger, list),
     // Nur auf dem Handy sichtbar (CSS): dort fehlt "Öffnen" in der Kalenderzelle

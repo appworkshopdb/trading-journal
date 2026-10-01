@@ -5,7 +5,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { uid, isMonthKey, squareCanvas } from '../utils.js';
 
-const DAY_COLS = 'date, pnl, note, note_color, tags, images, fields, updated_at';
+const DAY_COLS = 'date, pnl, note, note_color, tags, trades, images, fields, updated_at';
 const MONTH_COLS = 'month, pnl, note, note_color, images, fields, updated_at';
 const NOTE_COLS = 'id, title, body, pinned, created_at, updated_at';
 const CHECK_COLS = 'id, title, items, position, threshold, created_at, updated_at';
@@ -121,7 +121,7 @@ export function createSupabaseAdapter(cfg) {
         const mrow = { user_id: user.id, market, month: day.date, pnl: day.pnl, note: day.note || '', note_color: day.note_color || null, images: day.images || [], fields: day.fields || {}, updated_at: now() };
         return rowToMonth(must(await sb.from('month_entries').upsert(mrow, { onConflict: 'user_id,market,month' }).select(MONTH_COLS).single()));
       }
-      const row = { user_id: user.id, market, date: day.date, pnl: day.pnl, note: day.note || '', note_color: day.note_color || null, tags: day.tags || [], images: day.images || [], fields: day.fields || {}, updated_at: now() };
+      const row = { user_id: user.id, market, date: day.date, pnl: day.pnl, note: day.note || '', note_color: day.note_color || null, tags: day.tags || [], trades: day.trades || [], images: day.images || [], fields: day.fields || {}, updated_at: now() };
       const saved = must(await sb.from('day_entries').upsert(row, { onConflict: 'user_id,market,date' }).select(DAY_COLS).single());
       return rowToDay(saved);
     },

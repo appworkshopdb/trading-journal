@@ -302,7 +302,14 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
 .day-modal { background: var(--bg-elev); border: 1px solid var(--border); border-radius: 14px; padding: 20px; width: 420px; max-width: 100%; max-height: 100%; overflow: auto; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 20px 60px rgba(0,0,0,0.7); }
 .modal-head { display: flex; align-items: center; gap: 8px; }
 .modal-head h2 { flex: 1; margin: 0; font-size: 18px; }
-.modal-pnl { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.modal-trades { display: flex; flex-direction: column; gap: 8px; }
+.trade-rows { display: flex; flex-direction: column; gap: 10px; }
+.trade-row { display: grid; grid-template-columns: 1fr 1fr 0.7fr 28px; gap: 10px; align-items: end; position: relative; }
+.trade-remove[hidden] { display: block; visibility: hidden; }
+.trade-row .field input { min-width: 0; }
+.field input.pnl-rr { font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.add-trade { align-self: flex-start; color: var(--accent); font-weight: 600; }
+.trade-remove { padding: 8px; }
 .field input.pnl-gain, .field input.pnl-loss { font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .field input.pnl-gain { color: var(--win); }
 .field input.pnl-loss { color: var(--loss); }
