@@ -67,6 +67,7 @@ create table if not exists public.checklists (
 -- Nachrüsten für bereits bestehende Projekte (create table if not exists ergänzt keine Spalten):
 alter table public.day_entries add column if not exists note_color text;
 alter table public.day_entries add column if not exists fields jsonb not null default '[]';
+alter table public.day_entries add column if not exists trades jsonb not null default '[]';  -- [{ gain, loss, rr }] optional, mehrere Trades pro Tag
 alter table public.checklists  add column if not exists threshold integer not null default 85;
 
 -- Märkte (BTC/GOLD): bestehende Einträge gehören automatisch zu BTC

@@ -50,7 +50,7 @@ async function persist(work) {
   catch (e) { console.error(e); setStatus('Fehler: ' + (e.message || e), true); throw e; }
 }
 
-const isEmptyDay = (d) => d.pnl == null && !(d.note || '').trim() && !(d.tags || []).length && !(d.images || []).length && !hasFieldValues(d.fields);
+const isEmptyDay = (d) => d.pnl == null && !(d.note || '').trim() && !(d.tags || []).length && !(d.images || []).length && !hasFieldValues(d.fields) && !(d.trades || []).length;
 
 // ---------------------------------------------------------------- Aktionen (werden an die Renderer gereicht)
 
@@ -63,7 +63,7 @@ const actions = {
   async clearPopup(iso) { actions.closePopup(); await actions.clearDay(iso); },
   // Handy: "Öffnen" im Popup speichert die Eingaben und wechselt direkt in den Detailbereich des Tages
   async savePopupAndOpen(iso, patch) {
-    const hasData = state.days[iso] || patch.pnl != null || (patch.note || '').trim();
+    const hasData = state.days[iso] || patch.pnl != null || (patch.trades || []).length || (patch.note || '').trim();
     actions.closePopup();
     const saving = hasData ? actions.updateDay(iso, patch) : null; // aktualisiert den State sofort, speichert im Hintergrund
     actions.openDetail(iso);
@@ -133,7 +133,7 @@ const actions = {
   // Tage
   async updateDay(iso, patch) {
     const market = state.market;
-    const merged = { date: iso, pnl: null, note: '', note_color: null, tags: [], images: [], fields: {}, ...(state.days[iso] || {}), ...patch };
+    const merged = { date: iso, pnl: null, note: '', note_color: null, tags: [], trades: [], images: [], fields: {}, ...(state.days[iso] || {}), ...patch };
     if (isEmptyDay(merged)) {
       delete state.days[iso];
       setState({}, ['calendar']);
