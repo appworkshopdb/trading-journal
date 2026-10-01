@@ -19,12 +19,18 @@ function statTile(label, value, cls = '') {
     h('span', { class: `stat-value ${cls}` }, value));
 }
 
+const pct = (x) => (x == null ? '–' : Math.round(x * 100) + ' %');
+const fmtR = (x, digits = 1) => (x == null ? '–' : (x > 0 ? '+' : '') + x.toLocaleString('de-DE', { maximumFractionDigits: digits }) + ' R');
+
 function statsBar(_title, st) {
+  const trades = st.tradeCount ? `${st.tradeWins} G · ${st.tradeLosses} V` : '–';
   return h('div', { class: 'stats' },
     statTile(st.traded && st.sum < 0 ? 'Verlust' : 'Profit', st.traded ? fmtMoney(st.sum, CONFIG.CURRENCY) : '–', signClass(st.sum)),
-    statTile('Gewinntage', st.wins, 'pos'),
-    statTile('Verlusttage', st.losses, 'neg'),
-    statTile('Trefferquote', st.winRate == null ? '–' : Math.round(st.winRate * 100) + ' %'),
+    statTile('Trades', trades),
+    statTile('Trefferquote', pct(st.winRate)),
+    statTile('R-Summe', fmtR(st.rSum), signClass(st.rSum)),
+    statTile('Ø RR Gewinner', fmtR(st.avgWinRR), st.avgWinRR != null ? 'pos' : ''),
+    statTile('Breakeven-Quote', pct(st.breakeven)),
   );
 }
 

@@ -144,16 +144,48 @@ export function monthTotal(days, key) {
   return b.traded ? b.result : null;
 }
 
-/** Statistik über eine Liste von Tageseinträgen */
+/**
+ * Trades eines Tageseintrags. Ohne gespeicherte Trades zählt das Tagesergebnis als ein Trade.
+ * Ein Trade gewinnt/verliert nach Gewinn − Verlust; ohne Beträge entscheidet das Vorzeichen des RR.
+ * -> [{ net:number|null, rr:number|null }]
+ */
+export function tradesOf(e) {
+  if (e.trades?.length) return e.trades.map((t) => ({ net: t.gain == null && t.loss == null ? null : (t.gain || 0) - (t.loss || 0), rr: t.rr ?? null }));
+  return e.pnl == null ? [] : [{ net: e.pnl, rr: null }];
+}
+
+/**
+ * Statistik über eine Liste von Tageseinträgen.
+ * Tage: wins/losses/flat/traded. Trades: tradeWins/tradeLosses/tradeCount, winRate = Gewinn-Trades / alle Trades.
+ * RR: rSum (Summe aller RR), avgWinRR (Ø RR der Gewinner), breakeven = 1 / (1 + avgWinRR) = nötige Trefferquote.
+ */
 export function periodStats(entries) {
   let sum = 0, wins = 0, losses = 0, flat = 0;
+  let tradeWins = 0, tradeLosses = 0, tradeCount = 0, rSum = 0, rCount = 0, winRRSum = 0, winRRCount = 0;
   for (const e of entries) {
-    if (e.pnl == null) continue;
-    sum += e.pnl;
-    if (e.pnl > 0) wins++; else if (e.pnl < 0) losses++; else flat++;
+    if (e.pnl != null) {
+      sum += e.pnl;
+      if (e.pnl > 0) wins++; else if (e.pnl < 0) losses++; else flat++;
+    }
+    for (const t of tradesOf(e)) {
+      tradeCount++;
+      const sign = t.net ? Math.sign(t.net) : Math.sign(t.rr || 0);
+      if (sign > 0) tradeWins++; else if (sign < 0) tradeLosses++;
+      if (t.rr != null) {
+        rSum += t.rr; rCount++;
+        if (sign > 0) { winRRSum += t.rr; winRRCount++; }
+      }
+    }
   }
   const traded = wins + losses + flat;
-  return { sum, wins, losses, flat, traded, winRate: traded ? wins / traded : null };
+  const avgWinRR = winRRCount ? winRRSum / winRRCount : null;
+  return {
+    sum, wins, losses, flat, traded,
+    tradeWins, tradeLosses, tradeCount,
+    winRate: tradeCount ? tradeWins / tradeCount : null,
+    rSum: rCount ? rSum : null, rCount, avgWinRR,
+    breakeven: avgWinRR != null && avgWinRR > -1 ? 1 / (1 + avgWinRR) : null,
+  };
 }
 
 /**
