@@ -52,12 +52,30 @@ function noteEditor(note, actions) {
 
 // ======================= Checklisten =======================
 
-/** Anteil erledigter Punkte in % und ob der Richtwert erreicht ist (leere Liste: nie erlaubt) */
+/** "40" / "12,5" -> Zahl >= 0, sonst null */
+function parseWeight(text) {
+  const t = String(text ?? '').trim().replace(',', '.');
+  if (!t) return null;
+  const n = Number(t);
+  return Number.isFinite(n) && n >= 0 ? n : null;
+}
+const fmtWeight = (w) => String(w).replace('.', ',');
+const hasWeights = (items) => items.some((i) => i.weight != null);
+/** Summe der Gewichte aller Punkte (in %) */
+const weightSum = (items) => items.reduce((sum, i) => sum + (i.weight || 0), 0);
+
+/**
+ * Erfüllungsgrad in % und ob der Richtwert erreicht ist (leere Liste: nie erlaubt).
+ * Hat mindestens ein Punkt ein Gewicht, zählt die Summe der Gewichte der erledigten Punkte (max. 100 %; Punkte ohne Gewicht = 0 %).
+ * Ohne jedes Gewicht zählen alle Punkte gleich: erledigt / gesamt.
+ */
 function checkStatus(cl, threshold) {
   const items = cl.items || [];
   const done = items.filter((i) => i.done).length;
-  const pct = items.length ? (done / items.length) * 100 : 0;
-  return { done, total: items.length, pct, shown: Math.round(pct), allowed: items.length > 0 && pct >= threshold };
+  const weighted = hasWeights(items);
+  const raw = weighted ? items.filter((i) => i.done).reduce((sum, i) => sum + (i.weight || 0), 0) : (items.length ? (done / items.length) * 100 : 0);
+  const pct = Math.min(100, raw);
+  return { done, total: items.length, pct, shown: Math.round(pct), allowed: items.length > 0 && pct >= threshold, weighted };
 }
 
 function statusBadge(st) {
@@ -110,11 +128,14 @@ function checklistCard(cl, state, actions) {
     const text = pointInput.value.trim();
     if (!text) { pointInput.focus(); return; }
     const info = infoInput.value.trim();
-    actions.updateChecklist(cl.id, { items: [...items, { id: uid(), text, info, done: false }] }, true, cl.id);
+    actions.updateChecklist(cl.id, { items: [...items, { id: uid(), text, info, weight: parseWeight(weightInput.value), done: false }] }, true, cl.id);
   };
   const onEnter = (ev) => { if (ev.key === 'Enter') addItem(); };
   const pointInput = h('input', { type: 'text', class: 'add-item add-point', placeholder: '+ Punkt hinzufügen', 'aria-label': 'Neuer Punkt', onKeydown: onEnter });
-  const infoInput = h('input', { type: 'text', class: 'add-item add-info', placeholder: 'Infotext (optional) – Enter', 'aria-label': 'Infotext zum Punkt', onKeydown: onEnter });
+  const infoInput = h('input', { type: 'text', class: 'add-item add-info', placeholder: 'Infotext (optional)', 'aria-label': 'Infotext zum Punkt', onKeydown: onEnter });
+  const weightInput = h('input', { type: 'text', inputmode: 'decimal', class: 'add-item add-weight', placeholder: '%', 'aria-label': 'Gewichtung des Punkts in Prozent', onKeydown: onEnter });
+  const saveBtn = h('button', { type: 'button', class: 'primary small add-save', onClick: addItem }, 'Speichern');
+  const addRow = () => h('div', { class: 'add-row' }, pointInput, weightInput, saveBtn, infoInput);
   if (state.focusChecklist === cl.id) setTimeout(() => pointInput.focus(), 0);
 
   const delBtn = h('button', { class: 'text-btn danger', title: 'Liste löschen', 'aria-label': 'Liste löschen', onClick: () => { if (confirm('Liste löschen?')) actions.deleteChecklist(cl.id); } }, '×');
@@ -136,10 +157,16 @@ function checklistCard(cl, state, actions) {
             onInput: (ev) => { it.text = ev.target.value; save(); } }),
           h('input', { type: 'text', class: 'edit-input info', placeholder: 'Infotext (optional)', 'aria-label': 'Infotext des Punkts', value: it.info || '',
             onInput: (ev) => { it.info = ev.target.value; save(); } })),
+        h('label', { class: 'edit-weight', title: 'Gewichtung in Prozent' },
+          h('input', { type: 'text', inputmode: 'decimal', class: 'edit-input', placeholder: '–', 'aria-label': 'Gewichtung des Punkts in Prozent', value: it.weight == null ? '' : fmtWeight(it.weight),
+            onInput: (ev) => { it.weight = parseWeight(ev.target.value); save(); },
+            onChange: () => actions.refreshSidebar() }), h('span', {}, '%')),
         h('button', { class: 'item-del', title: 'Punkt entfernen', 'aria-label': 'Punkt entfernen',
           onClick: () => actions.updateChecklist(cl.id, { items: items.filter((i) => i.id !== it.id) }, true) }, '×'),
       ))),
-      h('div', { class: 'add-row' }, pointInput, infoInput),
+      addRow(),
+      hasWeights(items) && h('p', { class: `muted small weight-sum${weightSum(items) === 100 ? '' : ' warn'}` },
+        `Summe der Gewichte: ${fmtWeight(Math.round(weightSum(items) * 100) / 100)} % – erreichbar sind höchstens 100 %.`),
     );
   }
 
@@ -166,9 +193,10 @@ function checklistCard(cl, state, actions) {
         h('input', { type: 'checkbox', checked: it.done, onChange: (ev) => actions.updateChecklist(cl.id, { items: items.map((i) => i.id === it.id ? { ...i, done: ev.target.checked } : i) }, true) }),
         h('span', { class: 'item-body' },
           h('span', { class: 'item-text' }, it.text),
-          it.info && h('span', { class: 'item-info' }, it.info))),
+          it.info && h('span', { class: 'item-info' }, it.info)),
+        it.weight != null && h('span', { class: 'item-weight' }, `${fmtWeight(it.weight)} %`)),
       h('button', { class: 'item-del', title: 'Entfernen', 'aria-label': 'Punkt entfernen', onClick: () => actions.updateChecklist(cl.id, { items: items.filter((i) => i.id !== it.id) }, true) }, '×'),
     ))),
-    h('div', { class: 'add-row' }, pointInput, infoInput),
+    addRow(),
   );
 }
