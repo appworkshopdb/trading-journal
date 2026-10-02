@@ -13,6 +13,13 @@ function entriesOfMonth(state, y, m) {
   return dayEntriesOfMonth(state.days, monthPrefix(y, m));
 }
 
+/** Kleine Marken "Verpasst" / "Ausgesetzt", wenn der Tag solche Trades enthält */
+function flagChips(e) {
+  const st = e?.trades?.length ? e.trades.map((t) => t.status) : [];
+  const chips = [st.includes('missed') && ['missed', 'Verpasst'], st.includes('skipped') && ['skipped', 'Ausgesetzt']].filter(Boolean);
+  return chips.length ? h('span', { class: 'day-flags' }, chips.map(([k, label]) => h('span', { class: `day-flag ${k}` }, label))) : null;
+}
+
 function statTile(label, value, cls = '', sub = null) {
   return h('div', { class: 'stat' },
     h('span', { class: 'stat-label' }, label),
@@ -63,6 +70,7 @@ function monthView(state, actions) {
         h('span', { class: 'day-note-text' }, e.note)),
       h('div', { class: 'day-foot' },
         h('span', { class: 'day-pnl', title: e?.pnl != null ? fmtMoney(e.pnl, CONFIG.CURRENCY) : null }, e?.pnl != null ? fmtCompact(e.pnl) : ''),
+        flagChips(e),
         c.inMonth && h('button', { class: 'day-open', title: 'Bilder und Auswertung öffnen', onClick: () => actions.openDetail(c.iso) }, 'Öffnen')),
     );
   });

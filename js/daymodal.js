@@ -39,6 +39,7 @@ export function renderDayModal(root, state, actions) {
     ? entry.trades
     : [{ gain: pnl != null && pnl >= 0 ? pnl : null, loss: pnl != null && pnl < 0 ? -pnl : null, rr: null, status: null }];
   const tradeRows = [];
+  let onTradeChange = () => {}; // wird weiter unten gesetzt (Farb-Automatik)
   const tradesBox = h('div', { class: 'trade-rows' });
   const addTrade = (t = {}) => {
     const mk = (cls, val, label, ph) => h('input', { type: 'text', inputmode: 'decimal', class: cls, placeholder: ph, value: val == null ? '' : toField(val), 'aria-label': label });
@@ -48,6 +49,7 @@ export function renderDayModal(root, state, actions) {
       rr: mk('pnl-rr', t.rr, 'RR', '0,0'),
       status: t.status || null, // null | 'missed' | 'skipped'
     };
+    for (const input of [row.gain, row.loss]) input.addEventListener('input', () => onTradeChange());
     const idx = tradeRows.length;
     // Verpasst / Ausgesetzt: Trade wurde nicht gehandelt (zählt später getrennt in den Auswertungen); erneutes Tippen hebt auf
     const flags = [['missed', 'Verpasst'], ['skipped', 'Ausgesetzt']].map(([key, label]) => {
@@ -56,6 +58,7 @@ export function renderDayModal(root, state, actions) {
         row.status = row.status === key ? null : key;
         for (const b of flags) b.setAttribute('aria-pressed', String(b.dataset.key === row.status));
         row.el.classList.toggle('not-taken', !!row.status);
+        onTradeChange();
       };
       btn.dataset.key = key;
       return btn;
@@ -65,7 +68,7 @@ export function renderDayModal(root, state, actions) {
       h('label', { class: 'field' }, idx === 0 && h('span', {}, `Verlust (${CONFIG.CURRENCY})`), row.loss),
       h('label', { class: 'field' }, idx === 0 && h('span', {}, 'RR'), row.rr),
       h('button', { type: 'button', class: 'text-btn trade-remove', hidden: idx === 0 || null, 'aria-label': 'Trade entfernen',
-        onClick: () => { tradeRows.splice(tradeRows.indexOf(row), 1); row.el.remove(); } }, '×'),
+        onClick: () => { tradeRows.splice(tradeRows.indexOf(row), 1); row.el.remove(); onTradeChange(); } }, '×'),
       h('div', { class: 'trade-flags' }, flags));
     tradeRows.push(row);
     tradesBox.append(row.el);
@@ -76,6 +79,7 @@ export function renderDayModal(root, state, actions) {
 
   // Eigene Dropdown-Liste, damit jede Farbe schon in der Liste sichtbar ist (ein <select> kann das nicht überall)
   let colorId = noteColor(entry?.note_color).id;
+  let colorTouched = false; // sobald die Farbe selbst gewählt wurde, setzt die Automatik sie nicht mehr
   const dot = h('span', { class: 'color-dot' });
   const colorName = h('span', { class: 'color-name' });
   const trigger = h('button', { type: 'button', class: 'color-trigger', 'aria-haspopup': 'listbox', 'aria-expanded': 'false', 'aria-labelledby': 'noteColorLabel' },
@@ -95,7 +99,7 @@ export function renderDayModal(root, state, actions) {
     trigger.setAttribute('aria-expanded', String(open));
     if (open) options.find((o) => o.dataset.id === colorId)?.focus();
   };
-  const choose = (id) => { colorId = id; paintColor(); openList(false); trigger.focus(); };
+  const choose = (id) => { colorId = id; colorTouched = true; paintColor(); openList(false); trigger.focus(); };
   trigger.addEventListener('click', () => openList(list.classList.contains('hidden')));
   trigger.addEventListener('keydown', (ev) => { if (ev.key === 'ArrowDown') { ev.preventDefault(); openList(true); } });
   options.forEach((o, i) => {
@@ -108,6 +112,21 @@ export function renderDayModal(root, state, actions) {
     });
   });
   paintColor();
+
+  // Farbe passend zu den Trades vorwählen: Gewinn grün, Verlust rot, verpasst gelb, ausgesetzt grau – jederzeit änderbar
+  const autoColor = () => {
+    if (colorTouched || isMonth) return;
+    const rows = tradeRows.map((r) => ({ g: parseAmount(r.gain.value), l: parseAmount(r.loss.value), status: r.status }));
+    const taken = rows.filter((r) => !r.status && (r.g != null || r.l != null));
+    const net = taken.reduce((sum, r) => sum + Math.abs(r.g || 0) - Math.abs(r.l || 0), 0);
+    let id = null;
+    if (taken.length && net > 0) id = 'gruen';
+    else if (taken.length && net < 0) id = 'rot';
+    else if (rows.some((r) => r.status === 'missed')) id = 'gelb';
+    else if (rows.some((r) => r.status === 'skipped')) id = 'grau';
+    if (id && id !== colorId) { colorId = id; paintColor(); }
+  };
+  onTradeChange = autoColor;
 
   const collect = () => {
     const trades = tradeRows
