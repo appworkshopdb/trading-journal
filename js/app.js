@@ -355,6 +355,21 @@ function passwordBlock() {
   return wrap;
 }
 
+/** Farbmodus Hell/Dunkel (im Profilmenü) */
+function themeBlock() {
+  const row = el('div', 'menu-theme-row');
+  row.append(el('span', 'menu-label', 'Farbmodus'));
+  const seg = el('div', 'seg');
+  for (const [id, label] of [['light', 'Hell'], ['dark', 'Dunkel']]) {
+    const b = el('button', state.theme === id ? 'active' : '', label, { onclick: () => actions.setTheme(id) });
+    b.title = `Farbmodus: ${label}`;
+    b.setAttribute('aria-pressed', String(state.theme === id));
+    seg.append(b);
+  }
+  row.append(seg);
+  return row;
+}
+
 function renderMenus() {
   const onCalendar = state.page === 'calendar';
   const item = (label, active, onClick, cls = 'menu-item') => {
@@ -369,18 +384,27 @@ function renderMenus() {
     children.push(item('Auswertungen', !onCalendar && state.analysisScope === mk, () => actions.navigate({ page: 'analysis', scope: mk }), 'menu-item sub'));
   }
   children.push(item('Gesamtübersicht', state.page === 'overview', () => actions.navigate({ page: 'overview' })));
-  children.push(el('div', 'menu-sep'));
-  const theme = el('div', 'menu-theme');
-  const seg = el('div', 'seg');
-  for (const [id, label] of [['light', 'Hell'], ['dark', 'Dunkel']]) {
-    const b = el('button', state.theme === id ? 'active' : '', label, { onclick: () => actions.setTheme(id) });
-    b.title = `Farbmodus: ${label}`;
-    b.setAttribute('aria-pressed', String(state.theme === id));
-    seg.append(b);
-  }
-  theme.append(seg);
-  children.push(theme);
   main.replaceChildren(...children);
+
+  // Direkte Navigation in der Kopfzeile (breite Bildschirme): je Markt eine Gruppe „BTC | Auswertungen“, dazu „Gesamtübersicht“
+  const nav = $('topNav');
+  const navBtn = (label, active, onClick, cls = '') => {
+    const b = el('button', `nav-btn ${cls}${active ? ' active' : ''}`.trim(), label, { onclick: onClick });
+    if (active) b.setAttribute('aria-current', 'page');
+    return b;
+  };
+  const navItems = MARKETS.map((mk) => {
+    const group = el('div', 'nav-group');
+    group.setAttribute('role', 'group');
+    group.setAttribute('aria-label', mk);
+    group.append(
+      navBtn(mk, onCalendar && state.market === mk, () => actions.navigate({ page: 'calendar', market: mk }), 'nav-market'),
+      navBtn('Auswertungen', !onCalendar && state.page === 'analysis' && state.analysisScope === mk, () => actions.navigate({ page: 'analysis', scope: mk }), 'nav-sub'));
+    return group;
+  });
+  navItems.push(el('div', 'nav-group', null));
+  navItems[navItems.length - 1].append(navBtn('Gesamtübersicht', state.page === 'overview', () => actions.navigate({ page: 'overview' }), 'nav-market'));
+  nav.replaceChildren(...navItems);
   main.classList.toggle('hidden', state.menu !== 'main');
   $('btnMenu').setAttribute('aria-expanded', String(state.menu === 'main'));
 
@@ -412,7 +436,7 @@ function renderMenus() {
   who.append(el('div', 'menu-label', 'Angemeldet als'), el('div', 'profile-email', email || '–'));
   head.append(editBtn, who);
   const picRow = el('div', 'profile-pic-row'); picRow.append(picActions, file);
-  const rows = [head, picRow, el('div', 'profile-note', state.mode === 'supabase' ? 'Sync über Supabase aktiv.' : 'Lokaler Modus: Daten nur auf diesem Gerät.'), el('div', 'menu-sep'), usageBlock()];
+  const rows = [head, picRow, el('div', 'profile-note', state.mode === 'supabase' ? 'Sync über Supabase aktiv.' : 'Lokaler Modus: Daten nur auf diesem Gerät.'), el('div', 'menu-sep'), themeBlock(), el('div', 'menu-sep'), usageBlock()];
   if (state.mode === 'supabase' && state.user) {
     rows.push(el('div', 'menu-sep'), passwordBlock());
     rows.push(el('div', 'menu-sep'));
