@@ -47,7 +47,7 @@ Sortierung: `pinned desc, updated_at desc`.
 |---|---|---|
 | `id` | `id` | uuid |
 | `title` | `title` | text |
-| `items` | `items` | jsonb: `[{ id, text, info, done }]` – `info` = optionaler Infotext unter dem Punkt |
+| `items` | `items` | jsonb: `[{ id, text, info, weight, done }]` – `info` = optionaler Infotext unter dem Punkt, `weight` = optionale Gewichtung in % (keine Migration nötig) |
 | `position` | `position` | integer – Reihenfolge der Listen |
 | `created_at`, `updated_at` | ebenso | timestamptz |
 
