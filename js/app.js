@@ -6,6 +6,7 @@ import { startAuthBg, stopAuthBg } from './authbg.js';
 import { renderCalendar } from './calendar.js';
 import { renderSidebar } from './sidebar.js';
 import { renderDayModal } from './daymodal.js';
+import { overviewPage } from './overview.js';
 import { initSplitter } from './splitter.js';
 import { MONTHS, MONTHS_SHORT, MARKETS, todayISO, uid, isMonthKey, fmtBytes, hasFieldValues } from './utils.js';
 
@@ -102,6 +103,21 @@ const actions = {
     finally { loadingAll = false; state.loadedRanges.add('all'); } // auch bei Fehler, sonst würde jedes Rendern neu laden
     setState({}, ['sidebar']);
   },
+  // Gesamtübersicht: Tageseinträge ALLER Märkte laden (unabhängig vom Kalender-Cache); bei erneutem Öffnen aktualisieren
+  async loadOverview() {
+    const first = state.overview.status !== 'ready';
+    if (first) setState({ overview: { ...state.overview, status: 'loading' } });
+    try {
+      const lists = await Promise.all(MARKETS.map((mk) => db.getDays('1900-01-01', '2999-12-31', mk)));
+      const data = Object.fromEntries(MARKETS.map((mk, i) => [mk, lists[i].filter((e) => !isMonthKey(e.date))]));
+      setState({ overview: { ...state.overview, status: 'ready', data } });
+    } catch (e) {
+      console.error(e);
+      setStatus('Fehler: ' + (e.message || e), true);
+      if (first) setState({ overview: { ...state.overview, status: 'error' } });
+    }
+  },
+  setOverviewYear(year) { setState({ overview: { ...state.overview, year } }); },
   setSideTab(tab) { setState({ sideTab: tab, detailDate: null, editingChecklist: null, openChecklist: null }); },
 
   // Kopfmenü: Seite/Markt wechseln, Menüs, Farbmodus
@@ -119,6 +135,7 @@ const actions = {
       patch.analysisScope = scope;
     }
     setState(patch);
+    if (page === 'overview') actions.loadOverview();
   },
   toggleMenu(which) {
     const open = state.menu !== which;
@@ -343,6 +360,7 @@ function renderMenus() {
     children.push(item(mk, onCalendar && state.market === mk, () => actions.navigate({ page: 'calendar', market: mk })));
     children.push(item('Auswertungen', !onCalendar && state.analysisScope === mk, () => actions.navigate({ page: 'analysis', scope: mk }), 'menu-item sub'));
   }
+  children.push(item('Gesamtübersicht', state.page === 'overview', () => actions.navigate({ page: 'overview' })));
   children.push(el('div', 'menu-sep'));
   const theme = el('div', 'menu-theme');
   const seg = el('div', 'seg');
@@ -402,7 +420,7 @@ function renderMenus() {
 function renderTopbar() {
   applyTheme();
   const onCalendar = state.page === 'calendar';
-  $('marketPill').textContent = onCalendar ? state.market : (state.analysisScope ? `Auswertungen · ${state.analysisScope}` : 'Auswertungen');
+  $('marketPill').textContent = onCalendar ? state.market : state.page === 'overview' ? 'Gesamtübersicht' : (state.analysisScope ? `Auswertungen · ${state.analysisScope}` : 'Auswertungen');
   document.querySelector('.period-nav').classList.toggle('hidden', !onCalendar);
   document.querySelector('.view-toggle').classList.toggle('hidden', !onCalendar);
 
@@ -428,11 +446,20 @@ function renderTopbar() {
 function renderAnalysis() {
   const root = $('analysisPage');
   root.classList.toggle('hidden', state.page !== 'analysis');
-  $('workspace').classList.toggle('hidden', state.page === 'analysis');
+  $('workspace').classList.toggle('hidden', state.page !== 'calendar');
   if (state.page !== 'analysis') return;
   root.replaceChildren(
     el('h1', 'analysis-title', state.analysisScope ? `Auswertungen · ${state.analysisScope}` : 'Auswertungen'),
     el('p', 'muted', 'Hier entstehen später die Auswertungsdiagramme.'));
+}
+
+function renderOverview() {
+  const root = $('overviewPage');
+  root.classList.toggle('hidden', state.page !== 'overview');
+  if (state.page !== 'overview') return;
+  const scroll = root.scrollTop;
+  root.replaceChildren(overviewPage(state, actions));
+  root.scrollTop = scroll;
 }
 
 function bindTopbar() {
@@ -500,7 +527,7 @@ function bindAuth() {
 function render(_s, parts) {
   const all = !parts;
   if (all || parts.includes('topbar')) renderTopbar();
-  if (all) renderAnalysis();
+  if (all) { renderAnalysis(); renderOverview(); }
   if (all || parts.includes('calendar')) renderCalendar($('calendarPane'), state, actions);
   if (all || parts.includes('sidebar')) renderSidebar($('sideContent'), $('sideTabs'), state, actions);
   if (all || parts.includes('modal')) renderDayModal($('dayModal'), state, actions);
@@ -522,7 +549,7 @@ async function main() {
       const changed = (u?.id || null) !== (state.user?.id || null);
       state.user = u;
       showAuth(!u);
-      if (!u) { state.days = {}; state.notes = []; state.checklists = []; usage = null; avatarCache = { path: null, url: null }; pwOpen = false; setState({ menu: null }); }
+      if (!u) { state.days = {}; state.notes = []; state.checklists = []; state.overview = { status: 'idle', data: { BTC: [], GOLD: [] }, year: 'all' }; usage = null; avatarCache = { path: null, url: null }; pwOpen = false; setState({ menu: null }); }
       else if (changed) await loadAll();
       else refreshAvatar();
     });

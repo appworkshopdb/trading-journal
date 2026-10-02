@@ -15,6 +15,8 @@
   --font-num: 'SF Mono', SFMono-Regular, ui-monospace, 'Roboto Mono', Menlo, Consolas, monospace;
   --win: #00e676;  /* knalliges Grün */
   --missed: #fdd835; /* verpasste Trades (gelb) */
+  --c-btc: #f7931a;  /* Serienfarbe BTC (Gesamtübersicht) */
+  --c-gold: #29b6f6; /* Serienfarbe GOLD (Gesamtübersicht) */
   --win-rgb: 0, 230, 118;
   --win-bg: rgba(var(--win-rgb), 0.18);
   --loss: #ff1744;  /* knalliges Rot */
@@ -41,6 +43,8 @@
   --accent-ink: #ffffff;
   --win: #00a152;
   --missed: #b58900;
+  --c-btc: #e07b00;
+  --c-gold: #0277bd;
   --win-rgb: 0, 161, 82;
   --loss: #e0102d;
   --loss-rgb: 224, 16, 45;
@@ -585,3 +589,71 @@ strong.ms-val { font-weight: 700; font-size: 18px; line-height: 1.2; }
 .auth-screen .auth-card { box-shadow: 0 20px 60px rgba(0,0,0,0.55); }
 @media (max-height: 620px) { .auth-top, .auth-bottom { display: none; } }
 @media (max-width: 380px) { .auth-bottom { gap: 8px; letter-spacing: 0.12em; } }
+
+/* Gesamtübersicht (js/overview.js) */
+.overview-page { max-width: 1100px; margin: 0 auto; width: 100%; }
+.overview-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 4px; }
+.overview-head p { margin: 0; }
+.ov-section { margin-top: 26px; }
+.ov-title { margin: 0 0 10px; font-size: 13px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--text-muted); }
+.ov-sub { margin: 0 0 4px; font-size: 14px; font-weight: 700; }
+.ov-kpis { grid-template-columns: repeat(3, 1fr); margin-bottom: 0; }
+.ov-kpis .stat-value { font-size: 22px; }
+.dist { display: flex; flex-direction: column; gap: 8px; }
+.dist-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--text-muted); margin-bottom: 2px; }
+.dist-key { display: inline-flex; align-items: center; gap: 6px; }
+.dist-dot { width: 10px; height: 10px; border-radius: 3px; display: inline-block; background: var(--flat); }
+.dist-dot.won, .dist-seg.won { background: var(--win); }
+.dist-dot.lost, .dist-seg.lost { background: var(--loss); }
+.dist-dot.missed, .dist-seg.missed { background: var(--missed); }
+.dist-dot.skipped, .dist-seg.skipped { background: var(--flat); }
+.dist-dot.mk-BTC { background: var(--c-btc); }
+.dist-dot.mk-GOLD { background: var(--c-gold); }
+.dist-dot.total { background: var(--text); }
+.dist-row { display: grid; grid-template-columns: 64px 1fr 96px; align-items: center; gap: 10px; }
+.dist-label { font-weight: 700; font-size: 13px; }
+.dist-bar { display: flex; height: 26px; border-radius: 7px; overflow: hidden; background: var(--bg-elev2); border: 1px solid var(--border); }
+.dist-seg { display: flex; align-items: center; justify-content: center; min-width: 22px; font-size: 12px; font-weight: 700; color: #000; font-variant-numeric: tabular-nums; }
+.dist-rate { text-align: right; white-space: nowrap; }
+.cmp-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-elev); }
+.cmp { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
+.cmp th, .cmp td { padding: 8px 12px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--border); }
+.cmp th:first-child, .cmp tbody th { text-align: left; font-weight: 500; color: var(--text-muted); }
+.cmp thead th { font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; }
+.cmp .cmp-col.mk-BTC { color: var(--c-btc); }
+.cmp .cmp-col.mk-GOLD { color: var(--c-gold); }
+.cmp-day { display: inline-flex; flex-direction: column; align-items: flex-end; line-height: 1.25; }
+.cmp-day small { font-size: 11px; font-weight: 400; color: var(--text-muted); }
+.cmp .cmp-total { background: rgba(127, 127, 127, 0.08); font-weight: 700; }
+.cmp .cmp-group th { text-align: left; padding: 14px 12px 6px; font-size: 11px; letter-spacing: 0.07em; text-transform: uppercase; color: var(--text-muted); border-bottom: 0; }
+.cmp .cmp-strong th, .cmp .cmp-strong td { font-weight: 700; color: var(--text); }
+.cmp .cmp-strong td.pos { color: var(--win); }
+.cmp .cmp-strong td.neg { color: var(--loss); }
+.cmp tfoot td, .cmp tfoot th { border-top: 1px solid var(--border); border-bottom: 0; }
+.ov-charts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.ov-chart { background: var(--bg-elev); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; min-width: 0; }
+.ov-svg { width: 100%; height: auto; display: block; }
+.ax-grid { stroke: var(--border); stroke-width: 1; }
+.ax-grid.zero { stroke: var(--text-muted); stroke-width: 1.2; }
+.ax-text { fill: var(--text-muted); font-size: 11px; font-family: var(--font-num); }
+.bar.mk-BTC { fill: var(--c-btc); }
+.bar.mk-GOLD { fill: var(--c-gold); }
+.ln { stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.ln.mk-BTC { stroke: var(--c-btc); }
+.ln.mk-GOLD { stroke: var(--c-gold); }
+.ln.total { stroke: var(--text); stroke-width: 2.6; }
+.dot.mk-BTC { fill: var(--c-btc); }
+.dot.mk-GOLD { fill: var(--c-gold); }
+.dot.total { fill: var(--text); }
+@media (max-width: 900px) {
+  .ov-charts { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+  .overview-page { padding: 16px 12px; }
+  .ov-kpis { grid-template-columns: repeat(2, 1fr); }
+  .dist-row { grid-template-columns: 52px 1fr; }
+  .dist-rate { display: none; }
+  .cmp { font-size: 13px; }
+  .cmp th, .cmp td { padding: 7px 8px; }
+  .cmp th:first-child, .cmp tbody th { white-space: normal; min-width: 96px; }
+}

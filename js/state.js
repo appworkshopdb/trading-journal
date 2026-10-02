@@ -11,9 +11,10 @@ export const state = {
   mode: 'local',          // 'local' | 'supabase'
   user: null,             // { id, email } oder null
 
-  page: 'calendar',       // 'calendar' | 'analysis'
+  page: 'calendar',       // 'calendar' | 'analysis' | 'overview' (Gesamtübersicht aller Märkte)
   market: stored('tj.market', MARKETS, 'BTC'), // aktiver Markt der Kalenderansicht
   analysisScope: null,    // Auswertungen: 'BTC' | 'GOLD' | null (alle Märkte)
+  overview: { status: 'idle', data: { BTC: [], GOLD: [] }, year: 'all' }, // Gesamtübersicht: Tageseinträge aller Märkte ('idle'|'loading'|'ready'|'error') + Zeitraumfilter
   menu: null,             // geöffnetes Kopfmenü: 'main' | 'profile' | null
   theme: stored('tj.theme', ['dark', 'light'], 'dark'),
 
