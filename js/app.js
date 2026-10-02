@@ -14,6 +14,8 @@ let db; // Daten-Adapter (siehe js/data/index.js)
 
 // ---------------------------------------------------------------- Laden
 
+let loadingAll = false;
+
 async function ensureYear(year) {
   const key = String(year);
   if (state.loadedRanges.has(key)) return;
@@ -86,6 +88,19 @@ const actions = {
     const t = new Date();
     await ensureYear(t.getFullYear());
     setState({ year: t.getFullYear(), month: t.getMonth(), selectedDate: todayISO() });
+  },
+  // Bilder-Tab zeigt Bilder aus ALLEN Jahren: fehlende Jahre einmalig nachladen (vorhandene Einträge bleiben unangetastet)
+  async loadAllImages() {
+    if (loadingAll || state.loadedRanges.has('all')) return;
+    loadingAll = true;
+    const market = state.market;
+    try {
+      const rows = await db.getDays('0000-01-01', '9999-12-31', market);
+      if (market !== state.market) return;
+      for (const r of rows) if (!state.days[r.date]) state.days[r.date] = r;
+    } catch (e) { console.error(e); setStatus('Fehler: ' + (e.message || e), true); }
+    finally { loadingAll = false; state.loadedRanges.add('all'); } // auch bei Fehler, sonst würde jedes Rendern neu laden
+    setState({}, ['sidebar']);
   },
   setSideTab(tab) { setState({ sideTab: tab, detailDate: null, editingChecklist: null, openChecklist: null }); },
 
