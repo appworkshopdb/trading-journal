@@ -10,6 +10,7 @@
 
 import { h, MARKETS, MONTHS, MONTHS_SHORT, fmtMoney, fmtCompact, signClass, periodStats, tradesOf, toISO, fromISO } from './utils.js';
 import { CONFIG } from '../config.js';
+import { marketIcon } from './icons.js';
 
 // ---------------------------------------------------------------- Berechnung
 
@@ -202,7 +203,7 @@ function distribution(total, per) {
     const sum = parts.reduce((n, [, , f]) => n + f(s), 0) || 1;
     // Nicht-gehandelte Trades bleiben in der Trefferquote außen vor, werden hier aber mitgezeigt
     return h('div', { class: 'dist-row' },
-      h('span', { class: 'dist-label' }, label),
+      h('span', { class: 'dist-label' }, MARKETS.includes(label) && marketIcon(label, 16), label),
       h('div', { class: 'dist-bar', role: 'img', 'aria-label': parts.map(([, l, f]) => `${l} ${f(s)}`).join(', ') },
         parts.map(([k, l, f]) => f(s) > 0 && h('span', { class: `dist-seg ${k}`, style: `flex:${f(s)}`, title: `${l}: ${f(s)} (${Math.round(f(s) / sum * 100)} %)` }, f(s)))),
       h('span', { class: 'dist-rate muted small' }, `Treffer ${pct(s.winRate)}`));
@@ -256,7 +257,7 @@ function compareTable(total, per) {
     }
   }
   return h('div', { class: 'cmp-wrap' }, h('table', { class: 'cmp' },
-    h('thead', {}, h('tr', {}, h('th', {}, ''), MARKETS.map((mk) => h('th', { class: `cmp-col mk-${mk}` }, mk)), h('th', { class: 'cmp-col cmp-total' }, 'Gesamt'))),
+    h('thead', {}, h('tr', {}, h('th', {}, ''), MARKETS.map((mk) => h('th', { class: `cmp-col mk-${mk}` }, marketIcon(mk, 16), mk)), h('th', { class: 'cmp-col cmp-total' }, 'Gesamt'))),
     h('tbody', {}, body)));
 }
 
@@ -353,7 +354,7 @@ function bucketTable(byMarket, gran) {
   const grand = MARKETS.reduce((n, mk) => n + sums[mk], 0);
   const label = (k) => (gran === 'day' ? k.split('-').reverse().join('.') : `${MONTHS_SHORT[Number(k.slice(5)) - 1]} ${k.slice(0, 4)}`);
   return h('div', { class: 'cmp-wrap' }, h('table', { class: 'cmp months' },
-    h('thead', {}, h('tr', {}, h('th', {}, gran === 'day' ? 'Tag' : 'Monat'), MARKETS.map((mk) => h('th', { class: `cmp-col mk-${mk}` }, mk)), h('th', { class: 'cmp-col cmp-total' }, 'Gesamt'))),
+    h('thead', {}, h('tr', {}, h('th', {}, gran === 'day' ? 'Tag' : 'Monat'), MARKETS.map((mk) => h('th', { class: `cmp-col mk-${mk}` }, marketIcon(mk, 16), mk)), h('th', { class: 'cmp-col cmp-total' }, 'Gesamt'))),
     h('tbody', {}, keys.map((k) => {
       const r = results.get(k);
       const t = MARKETS.reduce((n, mk) => n + r[mk], 0);

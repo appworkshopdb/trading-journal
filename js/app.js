@@ -7,6 +7,7 @@ import { renderCalendar } from './calendar.js';
 import { renderSidebar } from './sidebar.js';
 import { renderDayModal } from './daymodal.js';
 import { overviewPage } from './overview.js';
+import { marketIcon } from './icons.js';
 import { initSplitter } from './splitter.js';
 import { MONTHS, MONTHS_SHORT, MARKETS, todayISO, uid, isMonthKey, fmtBytes, hasFieldValues } from './utils.js';
 
@@ -380,7 +381,9 @@ function renderMenus() {
   const main = $('mainMenu');
   const children = [];
   for (const mk of MARKETS) {
-    children.push(item(mk, onCalendar && state.market === mk, () => actions.navigate({ page: 'calendar', market: mk })));
+    const mi = item(mk, onCalendar && state.market === mk, () => actions.navigate({ page: 'calendar', market: mk }));
+    mi.prepend(marketIcon(mk, 20));
+    children.push(mi);
     children.push(item('Auswertungen', !onCalendar && state.analysisScope === mk, () => actions.navigate({ page: 'analysis', scope: mk }), 'menu-item sub'));
   }
   children.push(item('Gesamtübersicht', state.page === 'overview', () => actions.navigate({ page: 'overview' })));
@@ -397,8 +400,10 @@ function renderMenus() {
     const group = el('div', 'nav-group');
     group.setAttribute('role', 'group');
     group.setAttribute('aria-label', mk);
+    const mb = navBtn(mk, onCalendar && state.market === mk, () => actions.navigate({ page: 'calendar', market: mk }), 'nav-market');
+    mb.prepend(marketIcon(mk, 18));
     group.append(
-      navBtn(mk, onCalendar && state.market === mk, () => actions.navigate({ page: 'calendar', market: mk }), 'nav-market'),
+      mb,
       navBtn('Auswertungen', !onCalendar && state.page === 'analysis' && state.analysisScope === mk, () => actions.navigate({ page: 'analysis', scope: mk }), 'nav-sub'));
     return group;
   });
@@ -452,7 +457,9 @@ function renderMenus() {
 function renderTopbar() {
   applyTheme();
   const onCalendar = state.page === 'calendar';
-  $('marketPill').textContent = onCalendar ? state.market : state.page === 'overview' ? 'Gesamtübersicht' : (state.analysisScope ? `Auswertungen · ${state.analysisScope}` : 'Auswertungen');
+  const pillText = onCalendar ? state.market : state.page === 'overview' ? 'Gesamtübersicht' : (state.analysisScope ? `Auswertungen · ${state.analysisScope}` : 'Auswertungen');
+  const pillMarket = onCalendar ? state.market : state.page === 'analysis' ? state.analysisScope : null;
+  $('marketPill').replaceChildren(...(pillMarket ? [marketIcon(pillMarket, 16)] : []), pillText);
   document.querySelector('.period-nav').classList.toggle('hidden', !onCalendar);
   document.querySelector('.view-toggle').classList.toggle('hidden', !onCalendar);
 

@@ -702,3 +702,12 @@ strong.ms-val { font-weight: 700; font-size: 18px; line-height: 1.2; }
 @media (max-width: 640px), (max-height: 480px) {
   .topbar { padding-left: max(8px, env(safe-area-inset-left)); padding-right: max(8px, env(safe-area-inset-right)); }
 }
+
+/* Marken-Symbole der Märkte (js/icons.js) */
+.mk-icon { display: inline-flex; width: var(--s, 18px); height: var(--s, 18px); flex-shrink: 0; vertical-align: middle; }
+.mk-icon svg { width: 100%; height: 100%; display: block; }
+.nav-btn.nav-market { display: inline-flex; align-items: center; gap: 7px; }
+.menu-item:has(.mk-icon) { display: flex; align-items: center; gap: 9px; }
+.market-pill .mk-icon { margin-right: 6px; }
+.cmp thead th .mk-icon { margin-right: 6px; }
+.dist-label { display: inline-flex; align-items: center; gap: 6px; }
