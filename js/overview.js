@@ -8,7 +8,7 @@
 // Die Daten lädt actions.loadOverview() (state.overview.data = { BTC: [Einträge], GOLD: [...] }, nur Tageseinträge).
 // Reines Rendering – keine Datenzugriffe.
 
-import { h, MARKETS, MONTHS_SHORT, fmtMoney, fmtCompact, signClass, periodStats, tradesOf } from './utils.js';
+import { h, MARKETS, MONTHS, MONTHS_SHORT, fmtMoney, fmtCompact, signClass, periodStats, tradesOf, toISO, fromISO } from './utils.js';
 import { CONFIG } from '../config.js';
 
 // ---------------------------------------------------------------- Berechnung
@@ -41,18 +41,19 @@ export function summarize(entries) {
   };
 }
 
-/** Summe der Tagesergebnisse je Monat: Map 'YYYY-MM' -> { BTC, GOLD } */
-function monthlyResults(byMarket) {
-  const months = new Map();
+/** Summe der Tagesergebnisse je Zeitabschnitt: Map Schlüssel -> { BTC, GOLD }; gran 'day' (Schlüssel 'YYYY-MM-DD') oder 'month' ('YYYY-MM') */
+function bucketResults(byMarket, gran) {
+  const buckets = new Map();
+  const len = gran === 'day' ? 10 : 7;
   for (const mk of MARKETS) {
     for (const e of byMarket[mk] || []) {
       if (e.pnl == null) continue;
-      const key = e.date.slice(0, 7);
-      if (!months.has(key)) months.set(key, Object.fromEntries(MARKETS.map((m) => [m, 0])));
-      months.get(key)[mk] += e.pnl;
+      const key = e.date.slice(0, len);
+      if (!buckets.has(key)) buckets.set(key, Object.fromEntries(MARKETS.map((m) => [m, 0])));
+      buckets.get(key)[mk] += e.pnl;
     }
   }
-  return months;
+  return buckets;
 }
 
 /** Lückenlose Monatsliste von 'YYYY-MM' bis 'YYYY-MM' */
@@ -77,6 +78,59 @@ const rr = (v) => (v == null ? '–' : (v > 0 ? '+' : '') + v.toLocaleString('de
 const int = (v) => String(v);
 const dayLabel = (b) => (b ? h('span', { class: 'cmp-day' }, money(b.pnl), h('small', {}, b.date.split('-').reverse().join('.'))) : '–');
 
+// ---------------------------------------------------------------- Zeitraum
+
+/** Aktueller Zeitraum als { from, to } ('YYYY-MM-DD', beide inklusive; null = unbegrenzt) und Beschriftung */
+function resolveRange(r, entries) {
+  const dates = entries.map((e) => e.date).sort();
+  if (r.mode === 'year') return { from: `${r.year}-01-01`, to: `${r.year}-12-31`, label: String(r.year) };
+  if (r.mode === 'month') {
+    const last = new Date(r.year, r.month + 1, 0).getDate();
+    const mm = String(r.month + 1).padStart(2, '0');
+    return { from: `${r.year}-${mm}-01`, to: `${r.year}-${mm}-${String(last).padStart(2, '0')}`, label: `${MONTHS[r.month]} ${r.year}` };
+  }
+  if (r.mode === 'custom') {
+    let from = r.from || dates[0] || null, to = r.to || dates[dates.length - 1] || null;
+    if (from && to && from > to) [from, to] = [to, from];
+    const f = (d) => d.split('-').reverse().join('.');
+    return { from, to, label: from && to ? `${f(from)} – ${f(to)}` : 'Benutzerdefiniert' };
+  }
+  return { from: dates[0] || null, to: dates[dates.length - 1] || null, label: 'Alle Daten', all: true };
+}
+
+/** Zeitabschnitte für Diagramme/Tabelle: Tage (Monat, kurze benutzerdefinierte Zeiträume) oder Monate */
+function bucketsFor(range, mode) {
+  if (!range.from || !range.to) return { gran: 'month', keys: [] };
+  const span = Math.round((fromISO(range.to) - fromISO(range.from)) / 86400000) + 1;
+  if (mode === 'month' || (mode === 'custom' && span <= 62)) {
+    const keys = [];
+    for (let d = fromISO(range.from); toISO(d) <= range.to; d.setDate(d.getDate() + 1)) keys.push(toISO(d));
+    return { gran: 'day', keys };
+  }
+  return { gran: 'month', keys: monthRange(range.from.slice(0, 7), range.to.slice(0, 7)) };
+}
+
+/** Bedienleiste: Monat | Jahr | Alles | Zeitraum, mit ‹ › zum Blättern und Datumsfeldern für den benutzerdefinierten Zeitraum */
+function filterBar(r, label, actions) {
+  const seg = h('div', { class: 'ov-seg', role: 'tablist', 'aria-label': 'Zeitraum' },
+    [['month', 'Monat'], ['year', 'Jahr'], ['all', 'Alles'], ['custom', 'Zeitraum']].map(([mode, text]) =>
+      h('button', { role: 'tab', class: r.mode === mode ? 'active' : '', 'aria-selected': String(r.mode === mode), onClick: () => actions.setOverviewRange({ mode }) }, text)));
+  const parts = [seg];
+  if (r.mode === 'month' || r.mode === 'year') {
+    parts.push(h('div', { class: 'ov-nav' },
+      h('button', { class: 'icon-btn', title: 'Zurück', 'aria-label': 'Zurück', onClick: () => actions.stepOverview(-1) }, '‹'),
+      h('span', { class: 'ov-nav-label' }, label),
+      h('button', { class: 'icon-btn', title: 'Vor', 'aria-label': 'Vor', onClick: () => actions.stepOverview(1) }, '›'),
+      h('button', { class: 'text-btn', onClick: () => actions.setOverviewRange({ year: new Date().getFullYear(), month: new Date().getMonth() }) }, r.mode === 'year' ? 'Dieses Jahr' : 'Dieser Monat')));
+  } else if (r.mode === 'custom') {
+    const date = (key, aria) => h('input', { type: 'date', class: 'ov-date', 'aria-label': aria, value: r[key] || '', onChange: (ev) => actions.setOverviewRange({ [key]: ev.target.value || null }) });
+    parts.push(h('div', { class: 'ov-nav' }, h('label', { class: 'ov-range-field' }, h('span', {}, 'Von'), date('from', 'Von')), h('label', { class: 'ov-range-field' }, h('span', {}, 'Bis'), date('to', 'Bis'))));
+  } else {
+    parts.push(h('span', { class: 'muted small' }, 'Alle vorhandenen Daten'));
+  }
+  return h('div', { class: 'ov-filter' }, ...parts);
+}
+
 // ---------------------------------------------------------------- Seite
 
 export function overviewPage(state, actions) {
@@ -90,31 +144,29 @@ export function overviewPage(state, actions) {
   if (ov.status === 'loading' || ov.status === 'idle') { page.append(h('p', { class: 'muted' }, 'Daten werden geladen …')); return page; }
   if (ov.status === 'error') { page.append(h('p', { class: 'error' }, 'Daten konnten nicht geladen werden. Bitte die Seite neu öffnen.')); return page; }
 
-  // Zeitraum: alle Jahre oder ein einzelnes Jahr
+  // Zeitraumfilter: Monat / Jahr (mit Blättern), alle Daten oder benutzerdefiniert
+  const r = ov.range;
   const allEntries = MARKETS.flatMap((mk) => ov.data[mk] || []);
-  const years = [...new Set(allEntries.map((e) => e.date.slice(0, 4)))].sort().reverse();
-  const period = ov.year !== 'all' && years.includes(ov.year) ? ov.year : 'all';
-  const select = h('select', { class: 'year-select', 'aria-label': 'Zeitraum', onChange: (ev) => actions.setOverviewYear(ev.target.value) },
-    h('option', { value: 'all' }, 'Alle Jahre'),
-    years.map((y) => h('option', { value: y }, y)));
-  select.value = period;
-  page.firstChild.append(select);
+  const range = resolveRange(r, allEntries);
+  page.append(filterBar(r, range.label, actions));
 
-  const byMarket = Object.fromEntries(MARKETS.map((mk) => [mk, (ov.data[mk] || []).filter((e) => period === 'all' || e.date.startsWith(period + '-'))]));
+  const inRange = (e) => (!range.from || e.date >= range.from) && (!range.to || e.date <= range.to);
+  const byMarket = Object.fromEntries(MARKETS.map((mk) => [mk, (ov.data[mk] || []).filter(inRange)]));
   const total = summarize(MARKETS.flatMap((mk) => byMarket[mk]));
   const per = Object.fromEntries(MARKETS.map((mk) => [mk, summarize(byMarket[mk])]));
 
   if (!total.traded && !total.tradeCount && !total.tradeMissed && !total.tradeSkipped) {
-    page.append(h('p', { class: 'muted' }, 'Für diesen Zeitraum liegen noch keine Einträge vor.'));
+    page.append(h('p', { class: 'muted ov-empty' }, 'Für diesen Zeitraum liegen noch keine Einträge vor.'));
     return page;
   }
 
+  const buckets = bucketsFor(range, r.mode);
   page.append(
     section('Kennzahlen', kpis(total, per)),
     section('Trade-Verteilung', distribution(total, per)),
     section('Vergleich der Märkte', compareTable(total, per)),
-    section('Verlauf', charts(byMarket, period)),
-    section('Monate', monthTable(byMarket)),
+    section('Verlauf', charts(byMarket, buckets)),
+    section(buckets.gran === 'day' ? 'Tage' : 'Monate', bucketTable(byMarket, buckets.gran)),
   );
   return page;
 }
@@ -232,21 +284,22 @@ function niceTicks(min, max, count = 4) {
 }
 const axisNum = (v) => (Math.abs(v) >= 1000 ? (v / 1000).toLocaleString('de-DE', { maximumFractionDigits: 1 }) + 'k' : v.toLocaleString('de-DE', { maximumFractionDigits: 0 }));
 const monthText = (key) => `${MONTHS_SHORT[Number(key.slice(5)) - 1]} ${key.slice(2, 4)}`;
+const dayText = (key) => `${Number(key.slice(8))}.${Number(key.slice(5, 7))}.`;
+const tipText = (key) => (key.length === 10 ? key.split('-').reverse().join('.') : monthText(key));
 
-function frame(height, ticks, y, labels, xAt, step) {
+function frame(height, ticks, y, labels, xAt, step, labelFn) {
   const H = height;
   const grid = ticks.map((v) => `<line class="ax-grid${v === 0 ? ' zero' : ''}" x1="${PAD.l}" x2="${W - PAD.r}" y1="${y(v)}" y2="${y(v)}"/><text class="ax-text" x="${PAD.l - 6}" y="${y(v) + 3.5}" text-anchor="end">${axisNum(v)}</text>`).join('');
-  const xs = labels.map((l, i) => (i % step === 0 ? `<text class="ax-text" x="${xAt(i)}" y="${H - 8}" text-anchor="middle">${monthText(l)}</text>` : '')).join('');
+  const xs = labels.map((l, i) => (i % step === 0 ? `<text class="ax-text" x="${xAt(i)}" y="${H - 8}" text-anchor="middle">${labelFn(l)}</text>` : '')).join('');
   return grid + xs;
 }
 
-function charts(byMarket, period) {
-  const results = monthlyResults(byMarket);
+function charts(byMarket, { gran, keys: months }) {
+  const results = bucketResults(byMarket, gran);
   if (!results.size) return h('p', { class: 'muted' }, 'Noch keine Ergebnisse.');
-  const keys = [...results.keys()].sort();
-  const months = period === 'all' ? monthRange(keys[0], keys[keys.length - 1]) : monthRange(`${period}-01`, `${period}-12`);
+  const labelFn = gran === 'day' ? dayText : monthText;
   const val = (key, mk) => results.get(key)?.[mk] || 0;
-  const step = Math.ceil(months.length / 6); // höchstens ca. 6 Beschriftungen, sonst überlappen sie
+  const step = Math.ceil(months.length / (gran === 'day' ? 8 : 6)); // wenige Beschriftungen, sonst überlappen sie
 
   // --- Ergebnis pro Monat: je Markt ein Balken
   const H1 = 220;
@@ -263,10 +316,10 @@ function charts(byMarket, period) {
       if (!v) return;
       const x = cx + (j - (MARKETS.length - 1) / 2) * (bw + 2) - bw / 2;
       const top = Math.min(y1(v), y1(0)), hgt = Math.max(1, Math.abs(y1(v) - y1(0)));
-      bars += `<rect class="bar mk-${mk}" x="${x.toFixed(1)}" y="${top.toFixed(1)}" width="${bw.toFixed(1)}" height="${hgt.toFixed(1)}" rx="2"><title>${monthText(k)} · ${mk}: ${money(v)}</title></rect>`;
+      bars += `<rect class="bar mk-${mk}" x="${x.toFixed(1)}" y="${top.toFixed(1)}" width="${bw.toFixed(1)}" height="${hgt.toFixed(1)}" rx="2"><title>${tipText(k)} · ${mk}: ${money(v)}</title></rect>`;
     });
   });
-  const svg1 = `<svg viewBox="0 0 ${W} ${H1}" class="ov-svg" role="img" aria-label="Ergebnis pro Monat je Markt">${frame(H1, ticks1, y1, months, (i) => PAD.l + gw * (i + 0.5), step)}${bars}</svg>`;
+  const svg1 = `<svg viewBox="0 0 ${W} ${H1}" class="ov-svg" role="img" aria-label="Ergebnis je Markt">${frame(H1, ticks1, y1, months, (i) => PAD.l + gw * (i + 0.5), step, labelFn)}${bars}</svg>`;
 
   // --- Kumulierter Verlauf: Gesamt + je Markt
   const H2 = 220;
@@ -282,35 +335,37 @@ function charts(byMarket, period) {
   const xAt = (i) => PAD.l + gw * (i + 0.5);
   const line = (name, cls) => {
     const pts = series[name].map((v, i) => `${xAt(i).toFixed(1)},${y2(v).toFixed(1)}`).join(' ');
-    const dots = months.length <= 24 ? series[name].map((v, i) => `<circle class="dot ${cls}" cx="${xAt(i).toFixed(1)}" cy="${y2(v).toFixed(1)}" r="2.6"><title>${monthText(months[i])} · ${name}: ${money(v)}</title></circle>`).join('') : '';
+    const dots = months.length <= 31 ? series[name].map((v, i) => `<circle class="dot ${cls}" cx="${xAt(i).toFixed(1)}" cy="${y2(v).toFixed(1)}" r="2.6"><title>${tipText(months[i])} · ${name}: ${money(v)}</title></circle>`).join('') : '';
     return `<polyline class="ln ${cls}" points="${pts}" fill="none"/>${dots}`;
   };
-  const svg2 = `<svg viewBox="0 0 ${W} ${H2}" class="ov-svg" role="img" aria-label="Kumuliertes Ergebnis">${frame(H2, ticks2, y2, months, xAt, step)}${MARKETS.map((mk) => line(mk, `mk-${mk}`)).join('')}${line('Gesamt', 'total')}</svg>`;
+  const svg2 = `<svg viewBox="0 0 ${W} ${H2}" class="ov-svg" role="img" aria-label="Kumuliertes Ergebnis">${frame(H2, ticks2, y2, months, xAt, step, labelFn)}${MARKETS.map((mk) => line(mk, `mk-${mk}`)).join('')}${line('Gesamt', 'total')}</svg>`;
 
   const legend = (withTotal) => h('div', { class: 'dist-legend' },
     MARKETS.map((mk) => h('span', { class: 'dist-key' }, h('i', { class: `dist-dot mk-${mk}` }), mk)),
     withTotal && h('span', { class: 'dist-key' }, h('i', { class: 'dist-dot total' }), 'Gesamt'));
   return h('div', { class: 'ov-charts' },
-    h('div', { class: 'ov-chart' }, h('h3', { class: 'ov-sub' }, 'Ergebnis pro Monat'), legend(false), h('div', { html: svg1 })),
+    h('div', { class: 'ov-chart' }, h('h3', { class: 'ov-sub' }, gran === 'day' ? 'Ergebnis pro Tag' : 'Ergebnis pro Monat'), legend(false), h('div', { html: svg1 })),
     h('div', { class: 'ov-chart' }, h('h3', { class: 'ov-sub' }, 'Kumulierter Verlauf'), legend(true), h('div', { html: svg2 })));
 }
 
-// ---- 5. Monatstabelle
+// ---- 5. Tabelle je Tag bzw. Monat
 
-function monthTable(byMarket) {
-  const results = monthlyResults(byMarket);
+function bucketTable(byMarket, gran) {
+  const results = bucketResults(byMarket, gran);
   const keys = [...results.keys()].sort().reverse(); // neueste zuerst
   if (!keys.length) return h('p', { class: 'muted' }, 'Noch keine Ergebnisse.');
   const cell = (v) => h('td', { class: signClass(v) }, v ? money(v) : '–');
   const sums = Object.fromEntries(MARKETS.map((mk) => [mk, keys.reduce((n, k) => n + results.get(k)[mk], 0)]));
+  const grand = MARKETS.reduce((n, mk) => n + sums[mk], 0);
+  const label = (k) => (gran === 'day' ? k.split('-').reverse().join('.') : `${MONTHS_SHORT[Number(k.slice(5)) - 1]} ${k.slice(0, 4)}`);
   return h('div', { class: 'cmp-wrap' }, h('table', { class: 'cmp months' },
-    h('thead', {}, h('tr', {}, h('th', {}, 'Monat'), MARKETS.map((mk) => h('th', { class: `cmp-col mk-${mk}` }, mk)), h('th', { class: 'cmp-col cmp-total' }, 'Gesamt'))),
+    h('thead', {}, h('tr', {}, h('th', {}, gran === 'day' ? 'Tag' : 'Monat'), MARKETS.map((mk) => h('th', { class: `cmp-col mk-${mk}` }, mk)), h('th', { class: 'cmp-col cmp-total' }, 'Gesamt'))),
     h('tbody', {}, keys.map((k) => {
       const r = results.get(k);
       const t = MARKETS.reduce((n, mk) => n + r[mk], 0);
-      return h('tr', {}, h('th', { scope: 'row' }, `${MONTHS_SHORT[Number(k.slice(5)) - 1]} ${k.slice(0, 4)}`), MARKETS.map((mk) => cell(r[mk])), h('td', { class: `cmp-total ${signClass(t)}` }, t ? money(t) : '–'));
+      return h('tr', {}, h('th', { scope: 'row' }, label(k)), MARKETS.map((mk) => cell(r[mk])), h('td', { class: `cmp-total ${signClass(t)}` }, t ? money(t) : '–'));
     })),
     h('tfoot', {}, h('tr', { class: 'cmp-strong' }, h('th', { scope: 'row' }, 'Summe'),
       MARKETS.map((mk) => cell(sums[mk])),
-      h('td', { class: `cmp-total ${signClass(MARKETS.reduce((n, mk) => n + sums[mk], 0))}` }, money(MARKETS.reduce((n, mk) => n + sums[mk], 0)))))));
+      h('td', { class: `cmp-total ${signClass(grand)}` }, money(grand))))));
 }
