@@ -16,27 +16,21 @@ import { CONFIG } from '../config.js';
 /** Kennzahlen einer Liste von Tageseinträgen (Grundlage: periodStats + zusätzliche Werte) */
 export function summarize(entries) {
   const st = periodStats(entries);
-  let grossWin = 0, grossLoss = 0, best = null, worst = null, lossRRSum = 0, lossRRCount = 0;
+  let dayWin = 0, dayLoss = 0, best = null, worst = null;
   for (const e of entries) {
     if (e.pnl != null) {
-      if (e.pnl > 0) grossWin += e.pnl; else if (e.pnl < 0) grossLoss += -e.pnl;
+      if (e.pnl > 0) dayWin += e.pnl; else if (e.pnl < 0) dayLoss += -e.pnl;
       if (best == null || e.pnl > best.pnl) best = { pnl: e.pnl, date: e.date };
       if (worst == null || e.pnl < worst.pnl) worst = { pnl: e.pnl, date: e.date };
-    }
-    for (const t of tradesOf(e)) {
-      if (t.status || t.rr == null) continue;
-      const sign = t.net ? Math.sign(t.net) : Math.sign(t.rr);
-      if (sign < 0) { lossRRSum += t.rr; lossRRCount++; }
     }
   }
   return {
     ...st,
-    grossWin, grossLoss,
-    profitFactor: grossLoss > 0 ? grossWin / grossLoss : null,
-    avgWinDay: st.wins ? grossWin / st.wins : null,
-    avgLossDay: st.losses ? grossLoss / st.losses : null,
+    grossWin: st.tradeGrossWin, grossLoss: st.tradeGrossLoss, // Trade-Ebene
+    profitFactor: st.tradeGrossLoss > 0 ? st.tradeGrossWin / st.tradeGrossLoss : null,
+    avgWinDay: st.wins ? dayWin / st.wins : null,
+    avgLossDay: st.losses ? dayLoss / st.losses : null,
     best, worst,
-    avgLossRR: lossRRCount ? lossRRSum / lossRRCount : null,
     expectancyR: st.rCount ? st.rSum / st.rCount : null, // Ø R je Trade mit RR
   };
 }
@@ -223,8 +217,8 @@ function compareTable(total, per) {
   const groups = [
     ['Ergebnis', [
       ['Ergebnis', (s) => (s.traded ? money(s.sum) : '–'), (s) => signClass(s.sum), true],
-      ['Gewinne (Summe)', (s) => (s.traded ? moneyPlain(s.grossWin) : '–'), () => 'pos'],
-      ['Verluste (Summe)', (s) => (s.traded ? moneyPlain(s.grossLoss) : '–'), () => 'neg'],
+      ['Gewinne (Summe der Trades)', (s) => (s.traded ? moneyPlain(s.grossWin) : '–'), () => 'pos'],
+      ['Verluste (Summe der Trades)', (s) => (s.traded ? moneyPlain(s.grossLoss) : '–'), () => 'neg'],
       ['Profitfaktor', (s) => num(s.profitFactor)],
     ]],
     ['Tage', [
