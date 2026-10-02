@@ -657,3 +657,18 @@ strong.ms-val { font-weight: 700; font-size: 18px; line-height: 1.2; }
   .cmp th, .cmp td { padding: 7px 8px; }
   .cmp th:first-child, .cmp tbody th { white-space: normal; min-width: 96px; }
 }
+
+/* Gesamtübersicht: Zeitraumfilter */
+.ov-filter { display: flex; align-items: center; gap: 10px 16px; flex-wrap: wrap; margin-top: 14px; }
+.ov-nav { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.ov-nav-label { min-width: 120px; text-align: center; font-weight: 700; }
+.ov-range-field { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-muted); }
+.ov-date { background: var(--bg-elev2); border: 1px solid var(--border); border-radius: 8px; padding: 6px 8px; color: var(--text); color-scheme: dark; font: inherit; }
+:root[data-theme="light"] .ov-date { color-scheme: light; }
+.ov-date:focus { border-color: var(--accent); outline: none; }
+.ov-empty { margin-top: 24px; }
+@media (max-width: 640px) { .ov-filter { gap: 10px; } .ov-nav-label { min-width: 100px; } }
+.ov-seg { display: flex; background: var(--bg-elev2); border-radius: 9px; padding: 3px; }
+.ov-seg button { padding: 5px 14px; border-radius: 7px; color: var(--text-muted); font-weight: 600; font-size: 14px; }
+.ov-seg button.active { background: var(--accent); color: var(--accent-ink); }
+@media (max-width: 640px) { .ov-seg button { padding: 5px 10px; } }

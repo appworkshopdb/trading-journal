@@ -14,7 +14,7 @@ export const state = {
   page: 'calendar',       // 'calendar' | 'analysis' | 'overview' (Gesamtübersicht aller Märkte)
   market: stored('tj.market', MARKETS, 'BTC'), // aktiver Markt der Kalenderansicht
   analysisScope: null,    // Auswertungen: 'BTC' | 'GOLD' | null (alle Märkte)
-  overview: { status: 'idle', data: { BTC: [], GOLD: [] }, year: 'all' }, // Gesamtübersicht: Tageseinträge aller Märkte ('idle'|'loading'|'ready'|'error') + Zeitraumfilter
+  overview: { status: 'idle', data: { BTC: [], GOLD: [] }, range: { mode: 'all', year: now.getFullYear(), month: now.getMonth(), from: null, to: null } }, // Gesamtübersicht: Tageseinträge aller Märkte ('idle'|'loading'|'ready'|'error') + Zeitraumfilter (mode 'month'|'year'|'all'|'custom'; month 0-basiert)
   menu: null,             // geöffnetes Kopfmenü: 'main' | 'profile' | null
   theme: stored('tj.theme', ['dark', 'light'], 'dark'),
 

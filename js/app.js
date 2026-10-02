@@ -117,7 +117,15 @@ const actions = {
       if (first) setState({ overview: { ...state.overview, status: 'error' } });
     }
   },
-  setOverviewYear(year) { setState({ overview: { ...state.overview, year } }); },
+  // Gesamtübersicht: Zeitraumfilter ändern (mode, year, month, from, to) bzw. mit ‹ › um einen Monat/ein Jahr blättern
+  setOverviewRange(patch) { setState({ overview: { ...state.overview, range: { ...state.overview.range, ...patch } } }); },
+  stepOverview(dir) {
+    const r = state.overview.range;
+    if (r.mode === 'year') return actions.setOverviewRange({ year: r.year + dir });
+    let m = r.month + dir, y = r.year;
+    if (m < 0) { m = 11; y--; } else if (m > 11) { m = 0; y++; }
+    actions.setOverviewRange({ year: y, month: m });
+  },
   setSideTab(tab) { setState({ sideTab: tab, detailDate: null, editingChecklist: null, openChecklist: null }); },
 
   // Kopfmenü: Seite/Markt wechseln, Menüs, Farbmodus
@@ -549,7 +557,7 @@ async function main() {
       const changed = (u?.id || null) !== (state.user?.id || null);
       state.user = u;
       showAuth(!u);
-      if (!u) { state.days = {}; state.notes = []; state.checklists = []; state.overview = { status: 'idle', data: { BTC: [], GOLD: [] }, year: 'all' }; usage = null; avatarCache = { path: null, url: null }; pwOpen = false; setState({ menu: null }); }
+      if (!u) { state.days = {}; state.notes = []; state.checklists = []; state.overview = { ...state.overview, status: 'idle', data: { BTC: [], GOLD: [] } }; usage = null; avatarCache = { path: null, url: null }; pwOpen = false; setState({ menu: null }); }
       else if (changed) await loadAll();
       else refreshAvatar();
     });
