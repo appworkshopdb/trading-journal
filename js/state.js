@@ -24,14 +24,15 @@ export const state = {
   popupDate: null,        // Tag, dessen Popup (Gewinn/Verlust/Notiz/Farbe) gerade offen ist
   detailDate: null,       // Tag, dessen Detailbereich (Bilder + Felder) rechts offen ist
 
-  sideTab: 'checklists',  // 'notes' | 'checklists'  (Standard: Checklisten)
+  sideTab: 'checklists',  // 'notes' | 'checklists' | 'images'  (Standard: Checklisten)
   activeNoteId: null,     // geöffnete Notiz im Notizen-Tab
 
   days: {},               // 'YYYY-MM-DD' -> Tageseintrag (Cache)
   loadedRanges: new Set(),// 'YYYY' oder 'YYYY-MM', bereits vom Adapter geladen
   notes: [],
   checklists: [],
-  fieldTemplate: { left: [], right: [] }, // Vorlage der Auswertungsfelder (Namen + Reihenfolge, zwei Spalten) für alle Tage/Monate
+  fieldTemplate: { left: [], right: [] },      // Vorlage der Auswertungsfelder für alle TAGE (Namen + Reihenfolge, zwei Spalten)
+  monthFieldTemplate: { left: [], right: [] }, // eigene Vorlage für alle MONATE (Jahresansicht)
   threshold: 85,          // Richtwert in % für alle Checklisten (ab so vielen erledigten Punkten: erlaubt)
   openChecklist: null,    // Checkliste, die im Checklisten-Tab geöffnet ist (sonst Übersicht aller Listen)
   editingChecklist: null, // Checkliste, die gerade in der Bearbeitungsansicht ist (Stift)

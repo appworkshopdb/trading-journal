@@ -38,8 +38,9 @@ export function createLocalAdapter() {
     onAuthChange() {},
     async signIn() {},
     async signUp() {},
-    async getFieldTemplate() { const t = read('tj.fieldTemplate', null); return { left: t?.left || [], right: t?.right || [] }; },
-    async saveFieldTemplate(tpl) { write('tj.fieldTemplate', tpl); },
+    // kind: 'day' (Tage, Monatsansicht) | 'month' (Monate, Jahresansicht) – getrennte Vorlagen
+    async getFieldTemplate(kind = 'day') { const t = read(kind === 'month' ? 'tj.fieldTemplate.month' : 'tj.fieldTemplate', null); return { left: t?.left || [], right: t?.right || [] }; },
+    async saveFieldTemplate(tpl, kind = 'day') { write(kind === 'month' ? 'tj.fieldTemplate.month' : 'tj.fieldTemplate', tpl); },
     getAvatarPath() { try { return localStorage.getItem('tj.avatar'); } catch { return null; } },
     async setAvatar(file) {
       const { squareCanvas } = await import('../utils.js');

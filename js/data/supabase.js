@@ -66,12 +66,13 @@ export function createSupabaseAdapter(cfg) {
       if (error) throw error;
     },
     // Vorlage der Auswertungsfelder liegt am Benutzerkonto (user_metadata) -> auf allen Geräten gleich, keine eigene Tabelle nötig
-    async getFieldTemplate() {
-      const t = user?.user_metadata?.field_template;
+    // kind: 'day' (Tage) | 'month' (Monate, Jahresansicht) – getrennte Vorlagen
+    async getFieldTemplate(kind = 'day') {
+      const t = user?.user_metadata?.[kind === 'month' ? 'field_template_month' : 'field_template'];
       return { left: t?.left || [], right: t?.right || [] };
     },
-    async saveFieldTemplate(tpl) {
-      const { data, error } = await sb.auth.updateUser({ data: { field_template: tpl } });
+    async saveFieldTemplate(tpl, kind = 'day') {
+      const { data, error } = await sb.auth.updateUser({ data: { [kind === 'month' ? 'field_template_month' : 'field_template']: tpl } });
       if (error) throw error;
       if (data?.user) user = data.user;
     },

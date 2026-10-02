@@ -37,7 +37,7 @@ export function renderDayModal(root, state, actions) {
   const pnl = entry?.pnl ?? null;
   const initial = entry?.trades?.length
     ? entry.trades
-    : [{ gain: pnl != null && pnl >= 0 ? pnl : null, loss: pnl != null && pnl < 0 ? -pnl : null, rr: null }];
+    : [{ gain: pnl != null && pnl >= 0 ? pnl : null, loss: pnl != null && pnl < 0 ? -pnl : null, rr: null, status: null }];
   const tradeRows = [];
   const tradesBox = h('div', { class: 'trade-rows' });
   const addTrade = (t = {}) => {
@@ -46,14 +46,27 @@ export function renderDayModal(root, state, actions) {
       gain: mk('pnl-gain', t.gain, `Gewinn (${CONFIG.CURRENCY})`, '0,00'),
       loss: mk('pnl-loss', t.loss, `Verlust (${CONFIG.CURRENCY})`, '0,00'),
       rr: mk('pnl-rr', t.rr, 'RR', '0,0'),
+      status: t.status || null, // null | 'missed' | 'skipped'
     };
     const idx = tradeRows.length;
-    row.el = h('div', { class: 'trade-row' },
+    // Verpasst / Ausgesetzt: Trade wurde nicht gehandelt (zählt später getrennt in den Auswertungen); erneutes Tippen hebt auf
+    const flags = [['missed', 'Verpasst'], ['skipped', 'Ausgesetzt']].map(([key, label]) => {
+      const btn = h('button', { type: 'button', class: 'trade-flag', 'aria-pressed': String(row.status === key) }, label);
+      btn.onclick = () => {
+        row.status = row.status === key ? null : key;
+        for (const b of flags) b.setAttribute('aria-pressed', String(b.dataset.key === row.status));
+        row.el.classList.toggle('not-taken', !!row.status);
+      };
+      btn.dataset.key = key;
+      return btn;
+    });
+    row.el = h('div', { class: `trade-row${row.status ? ' not-taken' : ''}` },
       h('label', { class: 'field' }, idx === 0 && h('span', {}, `Gewinn (${CONFIG.CURRENCY})`), row.gain),
       h('label', { class: 'field' }, idx === 0 && h('span', {}, `Verlust (${CONFIG.CURRENCY})`), row.loss),
       h('label', { class: 'field' }, idx === 0 && h('span', {}, 'RR'), row.rr),
       h('button', { type: 'button', class: 'text-btn trade-remove', hidden: idx === 0 || null, 'aria-label': 'Trade entfernen',
-        onClick: () => { tradeRows.splice(tradeRows.indexOf(row), 1); row.el.remove(); } }, '×'));
+        onClick: () => { tradeRows.splice(tradeRows.indexOf(row), 1); row.el.remove(); } }, '×'),
+      h('div', { class: 'trade-flags' }, flags));
     tradeRows.push(row);
     tradesBox.append(row.el);
   };
@@ -98,14 +111,15 @@ export function renderDayModal(root, state, actions) {
 
   const collect = () => {
     const trades = tradeRows
-      .map((r) => ({ gain: parseAmount(r.gain.value), loss: parseAmount(r.loss.value), rr: parseAmount(r.rr.value) }))
-      .filter((t) => t.gain != null || t.loss != null || t.rr != null)
-      .map((t) => ({ gain: t.gain == null ? null : Math.abs(t.gain), loss: t.loss == null ? null : Math.abs(t.loss), rr: t.rr }));
-    // Gewinn und Verlust aller Trades ergeben das Tagesergebnis; alles leer = kein Ergebnis
-    const hasMoney = trades.some((t) => t.gain != null || t.loss != null);
-    const result = hasMoney ? trades.reduce((sum, t) => sum + (t.gain || 0) - (t.loss || 0), 0) : null;
-    // Trades werden nur gespeichert, wenn sie über einen einfachen Tagesgewinn/-verlust hinausgehen (mehrere Zeilen oder RR)
-    const detailed = trades.length > 1 || trades.some((t) => t.rr != null);
+      .map((r) => ({ gain: parseAmount(r.gain.value), loss: parseAmount(r.loss.value), rr: parseAmount(r.rr.value), status: r.status }))
+      .filter((t) => t.gain != null || t.loss != null || t.rr != null || t.status)
+      .map((t) => ({ gain: t.gain == null ? null : Math.abs(t.gain), loss: t.loss == null ? null : Math.abs(t.loss), rr: t.rr, ...(t.status && { status: t.status }) }));
+    // Gewinn und Verlust der gehandelten Trades ergeben das Tagesergebnis (verpasste/ausgesetzte zählen nicht); alles leer = kein Ergebnis
+    const taken = trades.filter((t) => !t.status);
+    const hasMoney = taken.some((t) => t.gain != null || t.loss != null);
+    const result = hasMoney ? taken.reduce((sum, t) => sum + (t.gain || 0) - (t.loss || 0), 0) : null;
+    // Trades werden nur gespeichert, wenn sie über einen einfachen Tagesgewinn/-verlust hinausgehen (mehrere Zeilen, RR oder Status)
+    const detailed = trades.length > 1 || trades.some((t) => t.rr != null || t.status);
     return { pnl: isMonth ? null : result, trades: isMonth || !detailed ? [] : trades, note: note.value, note_color: colorId }; // Monat: Ergebnis kommt aus den Tagen
   };
   const save = (ev) => { ev.preventDefault(); actions.savePopup(iso, collect()); };

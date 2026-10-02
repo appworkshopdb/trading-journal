@@ -25,10 +25,10 @@ async function ensureYear(year) {
 async function loadAll() {
   state.days = {};
   state.loadedRanges = new Set();
-  const [notes, checklists, fieldTemplate] = await Promise.all([db.listNotes(), db.listChecklists(), db.getFieldTemplate()]);
+  const [notes, checklists, fieldTemplate, monthFieldTemplate] = await Promise.all([db.listNotes(), db.listChecklists(), db.getFieldTemplate('day'), db.getFieldTemplate('month')]);
   await ensureYear(state.year);
   const threshold = checklists.find((c) => c.threshold != null)?.threshold ?? 85;
-  setState({ notes, checklists, threshold, fieldTemplate });
+  setState({ notes, checklists, threshold, fieldTemplate, monthFieldTemplate });
   refreshAvatar(true);
 }
 
@@ -117,10 +117,10 @@ const actions = {
   async removeAvatar() {
     try { await persist(() => db.removeAvatar()); await refreshAvatar(true); } catch { /* s. o. */ }
   },
-  // Vorlage der Auswertungsfelder: gilt für alle Tage/Monate (nur Namen + Reihenfolge, die Werte stehen je Eintrag)
-  async saveFieldTemplate(tpl) {
-    state.fieldTemplate = tpl; // in place geändert, kein Re-Render (sonst verliert das Eingabefeld den Fokus)
-    await persist(() => db.saveFieldTemplate(tpl));
+  // Vorlage der Auswertungsfelder: je Ansicht eine eigene (kind 'day' = alle Tage, 'month' = alle Monate); nur Namen + Reihenfolge, die Werte stehen je Eintrag
+  async saveFieldTemplate(tpl, kind = 'day') {
+    state[kind === 'month' ? 'monthFieldTemplate' : 'fieldTemplate'] = tpl; // in place geändert, kein Re-Render (sonst verliert das Eingabefeld den Fokus)
+    await persist(() => db.saveFieldTemplate(tpl, kind));
   },
   async changePassword(pw) { await persist(() => db.changePassword(pw)); },
   closeMenu() { if (state.menu) setState({ menu: null }, ['topbar']); },
@@ -357,15 +357,21 @@ function renderMenus() {
   const big = el('div', 'avatar big'); fillAvatar(big);
   const file = el('input', 'hidden', null, { type: 'file', accept: 'image/*' });
   file.onchange = () => { actions.setAvatar(file.files[0]); file.value = ''; };
-  const pick = el('button', 'text-btn', avatarCache.url ? 'Bild ändern' : 'Profilbild hinzufügen', { onclick: () => file.click() });
+  // Profilbild antippen -> Auswahl: Bild hinzufügen/tauschen oder löschen. Der kleine Stift am Rand zeigt, dass es bearbeitbar ist.
+  const picActions = el('div', 'profile-pics hidden');
+  picActions.append(el('button', 'text-btn', avatarCache.url ? 'Bild tauschen' : 'Bild hinzufügen', { onclick: () => file.click() }));
+  if (avatarCache.url) picActions.append(el('button', 'text-btn danger', 'Bild löschen', { onclick: () => { if (confirm('Profilbild löschen?')) actions.removeAvatar(); } }));
+  const editBtn = el('button', 'avatar-edit', null, { type: 'button', title: 'Profilbild bearbeiten', 'aria-label': 'Profilbild bearbeiten' });
+  editBtn.setAttribute('aria-expanded', 'false');
+  editBtn.append(big, el('span', 'avatar-pen', null, { 'aria-hidden': 'true' }));
+  editBtn.lastChild.innerHTML = '<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>';
+  editBtn.onclick = () => { const open = picActions.classList.toggle('hidden') === false; editBtn.setAttribute('aria-expanded', String(open)); };
   const head = el('div', 'profile-head');
   const who = el('div', 'profile-who');
   who.append(el('div', 'menu-label', 'Angemeldet als'), el('div', 'profile-email', email || '–'));
-  const pics = el('div', 'profile-pics'); pics.append(pick, file);
-  if (avatarCache.url) pics.append(el('button', 'text-btn', 'Entfernen', { onclick: () => actions.removeAvatar() }));
-  who.append(pics);
-  head.append(big, who);
-  const rows = [head, el('div', 'profile-note', state.mode === 'supabase' ? 'Sync über Supabase aktiv.' : 'Lokaler Modus: Daten nur auf diesem Gerät.'), el('div', 'menu-sep'), usageBlock()];
+  head.append(editBtn, who);
+  const picRow = el('div', 'profile-pic-row'); picRow.append(picActions, file);
+  const rows = [head, picRow, el('div', 'profile-note', state.mode === 'supabase' ? 'Sync über Supabase aktiv.' : 'Lokaler Modus: Daten nur auf diesem Gerät.'), el('div', 'menu-sep'), usageBlock()];
   if (state.mode === 'supabase' && state.user) {
     rows.push(el('div', 'menu-sep'), passwordBlock());
     rows.push(el('div', 'menu-sep'));
