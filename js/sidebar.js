@@ -5,12 +5,13 @@
 
 import { h, uid, debounce } from './utils.js';
 import { detailPanel } from './detail.js';
+import { galleryPanel } from './gallery.js';
 
 export function renderSidebar(root, tabsEl, state, actions) {
   const inDetail = !!state.detailDate;
   tabsEl.classList.toggle('hidden', inDetail);
   for (const b of tabsEl.querySelectorAll('button')) b.classList.toggle('active', b.dataset.tab === state.sideTab);
-  const view = inDetail ? detailPanel : ({ notes: notesPanel, checklists: checklistsPanel }[state.sideTab] || checklistsPanel);
+  const view = inDetail ? detailPanel : ({ notes: notesPanel, checklists: checklistsPanel, images: galleryPanel }[state.sideTab] || checklistsPanel);
   root.replaceChildren(view(state, actions));
 }
 

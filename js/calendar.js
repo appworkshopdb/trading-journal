@@ -13,10 +13,11 @@ function entriesOfMonth(state, y, m) {
   return dayEntriesOfMonth(state.days, monthPrefix(y, m));
 }
 
-function statTile(label, value, cls = '') {
+function statTile(label, value, cls = '', sub = null) {
   return h('div', { class: 'stat' },
     h('span', { class: 'stat-label' }, label),
-    h('span', { class: `stat-value ${cls}` }, value));
+    h('span', { class: `stat-value ${cls}` }, value),
+    sub && h('span', { class: 'stat-sub' }, sub));
 }
 
 const pct = (x) => (x == null ? '–' : Math.round(x * 100) + ' %');
@@ -24,9 +25,10 @@ const fmtR = (x, digits = 1) => (x == null ? '–' : (x > 0 ? '+' : '') + x.toLo
 
 function statsBar(_title, st) {
   const trades = st.tradeCount ? `${st.tradeWins} G · ${st.tradeLosses} V` : '–';
+  const notTaken = [st.tradeMissed && `${st.tradeMissed} verpasst`, st.tradeSkipped && `${st.tradeSkipped} ausgesetzt`].filter(Boolean).join(' · ') || null;
   return h('div', { class: 'stats' },
     statTile(st.traded && st.sum < 0 ? 'Verlust' : 'Profit', st.traded ? fmtMoney(st.sum, CONFIG.CURRENCY) : '–', signClass(st.sum)),
-    statTile('Trades', trades),
+    statTile('Trades', trades, '', notTaken),
     statTile('Trefferquote', pct(st.winRate)),
     statTile('R-Summe', fmtR(st.rSum), signClass(st.rSum)),
     statTile('Ø RR Gewinner', fmtR(st.avgWinRR), st.avgWinRR != null ? 'pos' : ''),
@@ -106,6 +108,8 @@ function yearView(state, actions) {
         return h('span', { class: dcls, title: c.inMonth ? `${c.iso}${d?.pnl != null ? ' · ' + fmtMoney(d.pnl, CONFIG.CURRENCY) : ''}` : null });
       })),
       h('div', { class: 'day-foot' },
+        // "←": springt von der Jahresansicht direkt in die Monatsansicht dieses Monats
+        h('button', { class: 'day-back', title: `${MONTHS[m]} ${y} in der Monatsansicht öffnen`, 'aria-label': `${MONTHS[m]} in der Monatsansicht öffnen`, onClick: () => actions.openMonth(y, m) }, '←'),
         h('button', { class: 'day-open', title: 'Bilder und Auswertung öffnen', onClick: () => actions.openDetail(key) }, 'Öffnen')),
     );
   });

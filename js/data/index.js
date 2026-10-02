@@ -10,8 +10,8 @@
 //   signOut()                    -> Promise<void>
 //   getUserInfo()                -> { email, id } | null   für das Profilmenü
 //   changePassword(pw)           -> Promise<void>          Passwort ändern (nur Supabase)
-//   getFieldTemplate()           -> Promise<{left:[{id,label}], right:[{id,label}]}>  Vorlage der Auswertungsfelder
-//   saveFieldTemplate(tpl)       -> Promise<void>
+//   getFieldTemplate(kind)       -> Promise<{left:[{id,label}], right:[{id,label}]}>  Vorlage der Auswertungsfelder; kind 'day' (Standard) oder 'month'
+//   saveFieldTemplate(tpl, kind) -> Promise<void>
 //   getAvatarPath()              -> string|null            Profilbild-Pfad (Supabase: im Benutzerkonto, lokal: Data-URL)
 //   setAvatar(file)              -> Promise<string>        Profilbild quadratisch zuschneiden + speichern
 //   removeAvatar()               -> Promise<void>

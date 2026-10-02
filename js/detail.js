@@ -1,6 +1,6 @@
 // Detailbereich eines Tages (öffnet sich rechts über den Button "Öffnen" in der Kalenderzelle):
 // oben die Screenshots (3 pro Zeile), darunter zwei feste Spalten mit Feldern. Namen + Reihenfolge der Felder sind eine
-// Vorlage für ALLE Tage/Monate (state.fieldTemplate); die Werte gehören zum jeweiligen Tag/Monat (entry.fields = { feldId: wert }).
+// Vorlage für ALLE Tage bzw. ALLE Monate (state.fieldTemplate / state.monthFieldTemplate, je Ansicht getrennt); die Werte gehören zum jeweiligen Tag/Monat (entry.fields = { feldId: wert }).
 // Texteingaben speichern entprellt, ohne die Seitenleiste neu zu rendern (sonst verliert das Feld den Fokus).
 
 import { h, periodTitle, monthTotal, isMonthKey, fmtMoney, signClass, uid, debounce, fieldValues } from './utils.js';
@@ -8,11 +8,21 @@ import { CONFIG } from '../config.js';
 
 const imageUrlCache = new Map(); // path -> URL (Supabase: signierte URL, 1h gültig)
 
+/** <img> mit URL aus dem Cache bzw. vom Adapter (signierte URL) */
+export function loadedImg(img, actions) {
+  const el = h('img', { alt: img.caption || img.name || 'Screenshot', loading: 'lazy' });
+  const cached = imageUrlCache.get(img.path);
+  if (cached) el.src = cached;
+  else actions.imageUrl(img.path).then((url) => { imageUrlCache.set(img.path, url); el.src = url; }).catch(() => el.classList.add('broken'));
+  return el;
+}
+
 export function detailPanel(state, actions) {
   const iso = state.detailDate;
   const entry = state.days[iso] || { date: iso, pnl: null, note: '', tags: [], images: [], fields: [] };
   // Werte dieses Eintrags; alte Einträge (Liste mit Namen) werden umgewandelt, ihre Namen werden zur Vorlage, falls noch keine existiert
-  const tpl = state.fieldTemplate;
+  const kind = isMonthKey(iso) ? 'month' : 'day'; // Jahresansicht (Monate) und Monatsansicht (Tage) haben getrennte Vorlagen
+  const tpl = kind === 'month' ? state.monthFieldTemplate : state.fieldTemplate;
   const values = { ...fieldValues(entry.fields) };
   if (Array.isArray(entry.fields) && entry.fields.length) {
     const all = [...tpl.left, ...tpl.right];
@@ -28,7 +38,7 @@ export function detailPanel(state, actions) {
         if (t && f.value && t.label === (f.label || '') && t.label !== f.value) { t.label = f.value; changed = true; }
       }
     }
-    if (changed) actions.saveFieldTemplate(tpl);
+    if (changed) actions.saveFieldTemplate(tpl, kind);
   }
   const title = periodTitle(iso, { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' });
   const pnl = isMonthKey(iso) ? monthTotal(state.days, iso) : entry.pnl; // Monat: Summe der Tage (+ eigener Anteil)
@@ -44,18 +54,18 @@ export function detailPanel(state, actions) {
   };
   const saveDebounced = (patch) => { Object.assign(pending, patch); clearTimeout(timer); timer = setTimeout(flushNow, 500); };
 
-  // Vorlage speichern (entprellt); Änderungen an Namen/Reihenfolge gelten für alle Tage und Monate
-  const saveTpl = debounce(() => actions.saveFieldTemplate(tpl), 500);
+  // Vorlage speichern (entprellt); Änderungen an Namen/Reihenfolge gelten für alle Einträge dieser Ansicht
+  const saveTpl = debounce(() => actions.saveFieldTemplate(tpl, kind), 500);
   const addField = (side) => {
     flushNow();
     const f = { id: uid(), label: '' };
     tpl[side].push(f);
-    actions.saveFieldTemplate(tpl);
+    actions.saveFieldTemplate(tpl, kind);
     actions.refreshSidebar(f.id);
   };
   const removeField = (side, id) => {
     tpl[side] = tpl[side].filter((x) => x.id !== id);
-    actions.saveFieldTemplate(tpl);
+    actions.saveFieldTemplate(tpl, kind);
     actions.refreshSidebar();
   };
 
@@ -69,9 +79,9 @@ export function detailPanel(state, actions) {
       onInput: (ev) => { values[f.id] = ev.target.value; saveDebounced({ fields: values }); } });
     if (state.focusField === f.id) setTimeout(() => label.focus(), 0);
     // Löschen in zwei Schritten ohne Browser-Dialog: erster Tipp schärft den Button ("Löschen?"), zweiter Tipp entfernt das Feld
-    // (das Feld verschwindet aus der Vorlage, also bei allen Tagen und Monaten)
+    // (das Feld verschwindet aus der Vorlage, also bei allen Einträgen dieser Ansicht)
     let armTimer;
-    const del = h('button', { class: 'field-del', title: 'Feld entfernen (aus der Vorlage für alle Tage/Monate)', 'aria-label': 'Feld entfernen' }, '×');
+    const del = h('button', { class: 'field-del', title: (kind === 'month' ? 'Feld entfernen (aus der Vorlage für alle Monate)' : 'Feld entfernen (aus der Vorlage für alle Tage)'), 'aria-label': 'Feld entfernen' }, '×');
     del.onclick = () => {
       if (del.classList.contains('armed')) { clearTimeout(armTimer); removeField(side, f.id); return; }
       del.classList.add('armed'); del.textContent = 'Löschen?';
@@ -106,10 +116,7 @@ function imageGrid(entry, iso, actions, saveDebounced) {
   const imgs = entry.images || [];
   if (!imgs.length) return h('p', { class: 'muted small' }, 'Noch keine Bilder.');
   return h('div', { class: 'image-grid' }, imgs.map((img) => {
-    const el = h('img', { alt: img.caption || img.name || 'Screenshot', loading: 'lazy' });
-    const cached = imageUrlCache.get(img.path);
-    if (cached) el.src = cached;
-    else actions.imageUrl(img.path).then((url) => { imageUrlCache.set(img.path, url); el.src = url; }).catch(() => el.classList.add('broken'));
+    const el = loadedImg(img, actions);
     // Optionale Beschriftung: direkt am Bildobjekt eintragen, Speichern entprellt
     const caption = h('input', { type: 'text', class: 'thumb-caption', placeholder: 'Beschriftung (optional)', 'aria-label': 'Bildbeschriftung', value: img.caption || '',
       onInput: (ev) => { img.caption = ev.target.value; saveDebounced({ images: entry.images }); } });

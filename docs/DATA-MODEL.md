@@ -13,7 +13,7 @@ IDs sind UUIDs (`crypto.randomUUID()` im Client, `gen_random_uuid()` als DB-Defa
 | `note_color` | `note_color` | text / null | Farb-ID der Notiz: `blau`, `orange`, `lila`, `gelb`, `pink`, `grau` (siehe `NOTE_COLORS` in `utils.js`) |
 | `tags` | `tags` | text[] | Schlagworte – aktuell ohne Oberfläche, Daten bleiben erhalten |
 | `images` | `images` | jsonb | Array von `{ id, path, name }` – siehe unten |
-| `trades` | `trades` | jsonb | Optional: Array von `{ gain, loss, rr }` (Beträge ≥ 0, RR beliebig). Gesetzt, wenn ein Tag mehrere Trades oder einen RR-Wert hat; `pnl` = Summe(gain − loss) |
+| `trades` | `trades` | jsonb | Optional: Array von `{ gain, loss, rr, status? }` (`status` = `'missed'` verpasst | `'skipped'` ausgesetzt, sonst fehlt es) (Beträge ≥ 0, RR beliebig). Gesetzt, wenn ein Tag mehrere Trades oder einen RR-Wert hat; `pnl` = Summe(gain − loss) |
 | `fields` | `fields` | jsonb | „Auswertung des Tages": Array von `{ id, value, label }` (kurzer Wert + Bezeichnung, frei anlegbar) |
 | – | `user_id` | uuid | Besitzer (Default `auth.uid()`), nur im Supabase-Modus |
 | `updated_at` | `updated_at` | timestamptz | wird vom Client gesetzt |
@@ -76,3 +76,5 @@ mit je < 30 Punkten) völlig ausreichend und spart Roundtrips.
 - `month_entries` (neu): `month` ('YYYY-MM'), `pnl` (ungenutzt/null – das Monatsergebnis wird aus den Tagen berechnet), `note`, `note_color`, `images`, `fields`; unique (user_id, month). Im Client als Eintrag mit `date = 'YYYY-MM'`.
 - `day_entries.market` / `month_entries.market` (text, Standard 'BTC'): Markt des Eintrags. Eindeutig je (user_id, market, date) bzw. (user_id, market, month). Bestehende Einträge gehören zu BTC. Bild-Pfade: `<user_id>/<market>/<date|month>/<datei>`.
 - `fields` (Tag/Monat) ist jetzt ein Objekt `{ "<feldId>": "<wert>" }`; Feldnamen/Reihenfolge stehen in der Vorlage `field_template` (`{left:[{id,label}], right:[{id,label}]}`) am Benutzerkonto (Supabase `user_metadata`) bzw. lokal unter `tj.fieldTemplate`. Altes Format (Liste `[{id,value,label}]`) wird beim Öffnen migriert.
+
+- Feldvorlagen (`user_metadata`): `field_template` (Tage) und `field_template_month` (Monate/Jahresansicht), je `{left:[{id,label}], right:[{id,label}]}`.
