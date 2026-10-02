@@ -95,7 +95,7 @@ const actions = {
     loadingAll = true;
     const market = state.market;
     try {
-      const rows = await db.getDays('0000-01-01', '9999-12-31', market);
+      const rows = await db.getDays('1900-01-01', '2999-12-31', market);
       if (market !== state.market) return;
       for (const r of rows) if (!state.days[r.date]) state.days[r.date] = r;
     } catch (e) { console.error(e); setStatus('Fehler: ' + (e.message || e), true); }
