@@ -405,9 +405,11 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
    Querformat iPad/Laptop/Handy: Split nebeneinander (Standard).
    Hochformat oder sehr schmal: Kalender oben, Seitenleiste unten, Splitter ausgeblendet. */
 @media (max-width: 640px), (orientation: portrait) and (max-width: 900px) {
-  .workspace { grid-template-columns: 1fr; grid-template-rows: minmax(0, 55%) minmax(0, 45%); }
-  .splitter { display: none; }
-  .pane-side { border-left: 0; border-top: 1px solid var(--border); }
+  /* gestapelt: Kalender oben, waagerechte Griffleiste (verschiebbar), Seitenleiste unten */
+  .workspace { --splitv: 55%; grid-template-columns: 1fr; grid-template-rows: var(--splitv) 22px minmax(0, 1fr); }
+  .splitter { cursor: row-resize; }
+  .splitter::after { left: 50%; top: 50%; width: 44px; height: 4px; margin: -2px 0 0 -22px; }
+  .pane-side { border-left: 0; border-top: 0; }
   .topbar { gap: 6px; }
   .brand { display: none; }
   .market-pill { padding: 3px 8px; font-size: 12px; }
