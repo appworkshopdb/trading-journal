@@ -53,21 +53,21 @@ function noteEditor(note, actions) {
 
 // ======================= Checklisten =======================
 
-/** "40" / "12,5" -> Zahl >= 0, sonst null */
+/** "40" / "12,5" / "-30" -> Zahl (auch negativ = Abzug), sonst null */
 function parseWeight(text) {
-  const t = String(text ?? '').trim().replace(',', '.');
+  const t = String(text ?? '').trim().replace(',', '.').replace(/^[−–—]/, '-');
   if (!t) return null;
   const n = Number(t);
-  return Number.isFinite(n) && n >= 0 ? n : null;
+  return Number.isFinite(n) ? n : null;
 }
 const fmtWeight = (w) => String(w).replace('.', ',');
 const hasWeights = (items) => items.some((i) => i.weight != null);
-/** Summe der Gewichte aller Punkte (in %) */
-const weightSum = (items) => items.reduce((sum, i) => sum + (i.weight || 0), 0);
+/** Summe der positiven Gewichte (in %) – das ist der erreichbare Höchstwert; negative Gewichte sind Abzüge */
+const weightSum = (items) => items.reduce((sum, i) => sum + Math.max(0, i.weight || 0), 0);
 
 /**
  * Erfüllungsgrad in % und ob der Richtwert erreicht ist (leere Liste: nie erlaubt).
- * Hat mindestens ein Punkt ein Gewicht, zählt die Summe der Gewichte der erledigten Punkte (max. 100 %; Punkte ohne Gewicht = 0 %).
+ * Hat mindestens ein Punkt ein Gewicht, zählt die Summe der Gewichte der erledigten Punkte (zwischen 0 und 100 %; Punkte ohne Gewicht = 0 %; negative Gewichte verringern den Wert).
  * Ohne jedes Gewicht zählen alle Punkte gleich: erledigt / gesamt.
  */
 function checkStatus(cl, threshold) {
@@ -75,7 +75,7 @@ function checkStatus(cl, threshold) {
   const done = items.filter((i) => i.done).length;
   const weighted = hasWeights(items);
   const raw = weighted ? items.filter((i) => i.done).reduce((sum, i) => sum + (i.weight || 0), 0) : (items.length ? (done / items.length) * 100 : 0);
-  const pct = Math.min(100, raw);
+  const pct = Math.max(0, Math.min(100, raw)); // negative Gewichte ziehen ab, der Erfüllungsgrad bleibt aber zwischen 0 und 100 %
   return { done, total: items.length, pct, shown: Math.round(pct), allowed: items.length > 0 && pct >= threshold, weighted };
 }
 
@@ -134,7 +134,7 @@ function checklistCard(cl, state, actions) {
   const onEnter = (ev) => { if (ev.key === 'Enter') addItem(); };
   const pointInput = h('input', { type: 'text', class: 'add-item add-point', placeholder: '+ Punkt hinzufügen', 'aria-label': 'Neuer Punkt', onKeydown: onEnter });
   const infoInput = h('input', { type: 'text', class: 'add-item add-info', placeholder: 'Infotext (optional)', 'aria-label': 'Infotext zum Punkt', onKeydown: onEnter });
-  const weightInput = h('input', { type: 'text', inputmode: 'decimal', class: 'add-item add-weight', placeholder: '%', 'aria-label': 'Gewichtung des Punkts in Prozent', onKeydown: onEnter });
+  const weightInput = h('input', { type: 'text', inputmode: 'text', class: 'add-item add-weight', placeholder: '%', 'aria-label': 'Gewichtung des Punkts in Prozent (negativ = Abzug)', onKeydown: onEnter });
   const saveBtn = h('button', { type: 'button', class: 'primary small add-save', onClick: addItem }, 'Speichern');
   const addRow = () => h('div', { class: 'add-row' }, pointInput, weightInput, saveBtn, infoInput);
   if (state.focusChecklist === cl.id) setTimeout(() => pointInput.focus(), 0);
@@ -158,8 +158,8 @@ function checklistCard(cl, state, actions) {
             onInput: (ev) => { it.text = ev.target.value; save(); } }),
           h('input', { type: 'text', class: 'edit-input info', placeholder: 'Infotext (optional)', 'aria-label': 'Infotext des Punkts', value: it.info || '',
             onInput: (ev) => { it.info = ev.target.value; save(); } })),
-        h('label', { class: 'edit-weight', title: 'Gewichtung in Prozent' },
-          h('input', { type: 'text', inputmode: 'decimal', class: 'edit-input', placeholder: '–', 'aria-label': 'Gewichtung des Punkts in Prozent', value: it.weight == null ? '' : fmtWeight(it.weight),
+        h('label', { class: 'edit-weight', title: 'Gewichtung in Prozent (negativ = Abzug)' },
+          h('input', { type: 'text', inputmode: 'text', class: 'edit-input', placeholder: '–', 'aria-label': 'Gewichtung des Punkts in Prozent (negativ = Abzug)', value: it.weight == null ? '' : fmtWeight(it.weight),
             onInput: (ev) => { it.weight = parseWeight(ev.target.value); save(); },
             onChange: () => actions.refreshSidebar() }), h('span', {}, '%')),
         h('button', { class: 'item-del', title: 'Punkt entfernen', 'aria-label': 'Punkt entfernen',
@@ -167,7 +167,7 @@ function checklistCard(cl, state, actions) {
       ))),
       addRow(),
       hasWeights(items) && h('p', { class: `muted small weight-sum${weightSum(items) === 100 ? '' : ' warn'}` },
-        `Summe der Gewichte: ${fmtWeight(Math.round(weightSum(items) * 100) / 100)} % – erreichbar sind höchstens 100 %.`),
+        `Summe der positiven Gewichte: ${fmtWeight(Math.round(weightSum(items) * 100) / 100)} % – erreichbar sind höchstens 100 %. Negative Werte (z. B. -30) ziehen beim Abhaken ab.`),
     );
   }
 
@@ -195,7 +195,7 @@ function checklistCard(cl, state, actions) {
         h('span', { class: 'item-body' },
           h('span', { class: 'item-text' }, it.text),
           it.info && h('span', { class: 'item-info' }, it.info)),
-        it.weight != null && h('span', { class: 'item-weight' }, `${fmtWeight(it.weight)} %`)),
+        it.weight != null && h('span', { class: `item-weight${it.weight < 0 ? ' neg' : ''}` }, `${fmtWeight(it.weight)} %`)),
       h('button', { class: 'item-del', title: 'Entfernen', 'aria-label': 'Punkt entfernen', onClick: () => actions.updateChecklist(cl.id, { items: items.filter((i) => i.id !== it.id) }, true) }, '×'),
     ))),
     addRow(),

@@ -328,6 +328,7 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
 .edit-weight { display: flex; align-items: center; align-self: flex-start; height: 34px; gap: 4px; flex-shrink: 0; color: var(--text-muted); }
 .edit-weight .edit-input { width: 56px; text-align: right; }
 .item-weight { flex-shrink: 0; align-self: flex-start; padding: 1px 7px; font-size: 12px; font-weight: 700; border-radius: 999px; background: var(--bg-elev2); border: 1px solid var(--border); color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.item-weight.neg { color: var(--loss); border-color: rgba(var(--loss-rgb), 0.5); }
 .weight-sum { margin: 8px 0 0; }
 .weight-sum.warn { color: var(--today); }
 
