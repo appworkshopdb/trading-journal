@@ -86,7 +86,7 @@ UI-Ereignis ──► actions.xyz() ──► state mutieren + db.save…() ─�
 
 ## 4. UI-Konventionen
 
-* **Layout:** Topbar (52 px) + Workspace als CSS-Grid `--split | 10px | 1fr`. Splitter zwischen 25 % und 75 %,
+* **Layout:** Topbar (52 px) + Workspace als CSS-Grid `--split | 10px | 1fr`. Splitter zwischen 25 % und 75 % (gestapelt auf Handy/Hochformat: waagerechte Leiste, Kalenderhöhe 15–85 %, `--splitv`, localStorage `tj.splitPctV`),
   Doppelklick = 50 %.
 * **Kalender links, Seitenleiste rechts.** Seitenleiste hat zwei Tabs: `Checklisten` (Standard beim Start) und `Notizen`.
   Zwei getrennte Wege zum Tag:
@@ -113,8 +113,8 @@ UI-Ereignis ──► actions.xyz() ──► state mutieren + db.save…() ─�
 * **Farben** über CSS-Variablen in `:root`: `--win` (grün), `--loss` (rot), `--flat` (grau), `--today` (orange),
   `--accent` (teal). Neue Farben dort anlegen, nicht hart im CSS.
 * **Responsiv:** Zielreihenfolge iPad quer → Laptop → Handy quer. Nebeneinander ist Standard; bei Hochformat
-  ≤ 900 px oder Breite ≤ 640 px wird gestapelt (Kalender oben 55 %, Seitenleiste unten 45 %) und der Splitter
-  ausgeblendet. Bei Höhe ≤ 480 px (Handy quer) alles kompakter, Diagramm ausgeblendet.
+  ≤ 900 px oder Breite ≤ 640 px wird gestapelt (Kalender oben 55 %, Seitenleiste unten, dazwischen die waagerechte Griffleiste zum Verschieben) und die Leiste ist waagerecht (nicht mehr ausgeblendet)
+  verschiebbar. Bei Höhe ≤ 480 px (Handy quer) alles kompakter, Diagramm ausgeblendet.
 * **Zahlen** über `fmtMoney()` (de-DE, Währung aus `config.js`, positive Werte mit `+`). In Kalenderzellen und
   Mini-Monaten stattdessen `fmtCompact()` (ohne Währungssymbol, `+1.251` / `-300` / `+12,3k`), der volle Betrag steht im `title`.
 * **Bestätigungen** für Löschen über `confirm()` – bewusst simpel gehalten.
