@@ -11,7 +11,8 @@ export const state = {
   mode: 'local',          // 'local' | 'supabase'
   user: null,             // { id, email } oder null
 
-  page: 'calendar',       // 'calendar' | 'analysis' | 'overview' (Gesamtübersicht aller Märkte)
+  page: 'calendar',       // 'calendar' | 'analysis' | 'overview' (Gesamtübersicht aller Märkte) | 'calc' (Rechner)
+  calcMarket: 'BTC',      // Markt der Rechner-Seite (page === 'calc')
   market: stored('tj.market', MARKETS, 'BTC'), // aktiver Markt der Kalenderansicht
   analysisScope: null,    // Auswertungen: 'BTC' | 'GOLD' | null (alle Märkte)
   overview: { status: 'idle', data: { BTC: [], GOLD: [] }, range: { mode: 'all', year: now.getFullYear(), month: now.getMonth(), from: null, to: null } }, // Gesamtübersicht: Tageseinträge aller Märkte ('idle'|'loading'|'ready'|'error') + Zeitraumfilter (mode 'month'|'year'|'all'|'custom'; month 0-basiert)

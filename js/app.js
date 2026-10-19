@@ -7,6 +7,7 @@ import { renderCalendar } from './calendar.js';
 import { renderSidebar } from './sidebar.js';
 import { renderDayModal } from './daymodal.js';
 import { overviewPage } from './overview.js';
+import { calcPage } from './calc.js';
 import { marketIcon } from './icons.js';
 import { initSplitter } from './splitter.js';
 import { MONTHS, MONTHS_SHORT, MARKETS, todayISO, uid, isMonthKey, fmtBytes, hasFieldValues } from './utils.js';
@@ -140,6 +141,8 @@ const actions = {
         try { localStorage.setItem('tj.market', market); } catch { /* ohne Speicher weiter */ }
         await ensureYear(state.year);
       }
+    } else if (page === 'calc') {
+      patch.calcMarket = scope || state.calcMarket || 'BTC';
     } else {
       patch.analysisScope = scope;
     }
@@ -384,7 +387,8 @@ function renderMenus() {
     const mi = item(mk, onCalendar && state.market === mk, () => actions.navigate({ page: 'calendar', market: mk }));
     mi.prepend(marketIcon(mk, 20));
     children.push(mi);
-    children.push(item('Auswertungen', !onCalendar && state.analysisScope === mk, () => actions.navigate({ page: 'analysis', scope: mk }), 'menu-item sub'));
+    children.push(item('Auswertungen', state.page === 'analysis' && state.analysisScope === mk, () => actions.navigate({ page: 'analysis', scope: mk }), 'menu-item sub'));
+    children.push(item('Rechner', state.page === 'calc' && state.calcMarket === mk, () => actions.navigate({ page: 'calc', scope: mk }), 'menu-item sub'));
   }
   children.push(item('Gesamtübersicht', state.page === 'overview', () => actions.navigate({ page: 'overview' })));
   main.replaceChildren(...children);
@@ -404,7 +408,8 @@ function renderMenus() {
     mb.prepend(marketIcon(mk, 18));
     group.append(
       mb,
-      navBtn('Auswertungen', !onCalendar && state.page === 'analysis' && state.analysisScope === mk, () => actions.navigate({ page: 'analysis', scope: mk }), 'nav-sub'));
+      navBtn('Auswertungen', state.page === 'analysis' && state.analysisScope === mk, () => actions.navigate({ page: 'analysis', scope: mk }), 'nav-sub'),
+      navBtn('Rechner', state.page === 'calc' && state.calcMarket === mk, () => actions.navigate({ page: 'calc', scope: mk }), 'nav-sub'));
     return group;
   });
   navItems.push(el('div', 'nav-group', null));
@@ -457,8 +462,9 @@ function renderMenus() {
 function renderTopbar() {
   applyTheme();
   const onCalendar = state.page === 'calendar';
-  const pillText = onCalendar ? state.market : state.page === 'overview' ? 'Gesamtübersicht' : (state.analysisScope ? `Auswertungen · ${state.analysisScope}` : 'Auswertungen');
-  const pillMarket = onCalendar ? state.market : state.page === 'analysis' ? state.analysisScope : null;
+  const onCalc = state.page === 'calc';
+  const pillText = onCalendar ? state.market : onCalc ? `${state.calcMarket} Rechner` : state.page === 'overview' ? 'Gesamtübersicht' : (state.analysisScope ? `Auswertungen · ${state.analysisScope}` : 'Auswertungen');
+  const pillMarket = onCalendar ? state.market : onCalc ? state.calcMarket : state.page === 'analysis' ? state.analysisScope : null;
   $('marketPill').replaceChildren(...(pillMarket ? [marketIcon(pillMarket, 16)] : []), pillText);
   document.querySelector('.period-nav').classList.toggle('hidden', !onCalendar);
   document.querySelector('.view-toggle').classList.toggle('hidden', !onCalendar);
@@ -498,6 +504,15 @@ function renderOverview() {
   if (state.page !== 'overview') return;
   const scroll = root.scrollTop;
   root.replaceChildren(overviewPage(state, actions));
+  root.scrollTop = scroll;
+}
+
+function renderCalc() {
+  const root = $('calcPage');
+  root.classList.toggle('hidden', state.page !== 'calc');
+  if (state.page !== 'calc') return;
+  const scroll = root.scrollTop;
+  root.replaceChildren(calcPage(state, actions));
   root.scrollTop = scroll;
 }
 
@@ -566,7 +581,7 @@ function bindAuth() {
 function render(_s, parts) {
   const all = !parts;
   if (all || parts.includes('topbar')) renderTopbar();
-  if (all) { renderAnalysis(); renderOverview(); }
+  if (all) { renderAnalysis(); renderOverview(); renderCalc(); }
   if (all || parts.includes('calendar')) renderCalendar($('calendarPane'), state, actions);
   if (all || parts.includes('sidebar')) renderSidebar($('sideContent'), $('sideTabs'), state, actions);
   if (all || parts.includes('modal')) renderDayModal($('dayModal'), state, actions);
