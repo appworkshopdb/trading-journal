@@ -694,7 +694,7 @@ strong.ms-val { font-weight: 700; font-size: 18px; line-height: 1.2; }
 .nav-btn.active, .nav-btn.active:hover { background: var(--accent); color: var(--accent-ink); }
 @media (min-width: 821px) {
   .menu-wrap { display: none; }
-  .market-pill { display: none; }
+  .market-pill, .calc-pill { display: none; }
   .brand { display: block; }
   .top-nav { display: flex; align-items: center; gap: 10px; margin-left: 8px; min-width: 0; }
   .status { margin-left: auto; }
@@ -720,6 +720,9 @@ strong.ms-val { font-weight: 700; font-size: 18px; line-height: 1.2; }
 .nav-btn.nav-market { display: inline-flex; align-items: center; gap: 7px; }
 .menu-item:has(.mk-icon) { display: flex; align-items: center; gap: 9px; }
 .market-pill .mk-icon { margin-right: 6px; }
+.calc-pill { color: var(--text-muted); cursor: pointer; }
+.calc-pill:hover { color: var(--text); }
+.calc-pill.active { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 .cmp thead th .mk-icon { margin-right: 6px; }
 .dist-label { display: inline-flex; align-items: center; gap: 6px; }
 
