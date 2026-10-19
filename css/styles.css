@@ -15,6 +15,7 @@
   --font-num: 'SF Mono', SFMono-Regular, ui-monospace, 'Roboto Mono', Menlo, Consolas, monospace;
   --win: #00e676;  /* knalliges Grün */
   --missed: #fdd835; /* verpasste Trades (gelb) */
+  --target: #6f93ff; /* Ziel im Rechner */
   --c-btc: #f7931a;  /* Serienfarbe BTC (Gesamtübersicht) */
   --c-gold: #29b6f6; /* Serienfarbe GOLD (Gesamtübersicht) */
   --win-rgb: 0, 230, 118;
@@ -45,6 +46,7 @@
   --accent-ink: #ffffff;
   --win: #00a152;
   --missed: #b58900;
+  --target: #2f5bd8;
   --c-btc: #e07b00;
   --c-gold: #0277bd;
   --win-rgb: 0, 161, 82;
@@ -697,6 +699,12 @@ strong.ms-val { font-weight: 700; font-size: 18px; line-height: 1.2; }
   .top-nav { display: flex; align-items: center; gap: 10px; margin-left: 8px; min-width: 0; }
   .status { margin-left: auto; }
 }
+@media (min-width: 821px) and (max-width: 1180px) { /* Tablet: Navigation mit „Rechner“ kompakter, Markenname weg */
+  .brand { display: none; }
+  .top-nav { gap: 6px; margin-left: 0; }
+  .nav-btn { padding: 5px 8px; font-size: 13px; }
+  .nav-btn.nav-sub { margin-left: 3px; }
+}
 @media (min-width: 821px) and (max-height: 480px) {
   .nav-btn { padding: 4px 9px; font-size: 13px; }
 }
@@ -714,3 +722,60 @@ strong.ms-val { font-weight: 700; font-size: 18px; line-height: 1.2; }
 .market-pill .mk-icon { margin-right: 6px; }
 .cmp thead th .mk-icon { margin-right: 6px; }
 .dist-label { display: inline-flex; align-items: center; gap: 6px; }
+
+/* ---------------- Rechner (js/calc.js) ---------------- */
+.calc-page { overflow-y: auto; }
+.calc { max-width: 460px; margin: 0 auto; width: 100%; }
+.calc-title { display: flex; align-items: center; gap: 10px; margin: 4px 0 2px; font-size: 22px; }
+.calc-symbol { margin-left: auto; font-family: var(--font-num); font-size: 12px; font-weight: 600; color: var(--text-muted); letter-spacing: 0.06em; }
+.calc-sub { margin: 0 0 14px; font-size: 13px; }
+.calc-prices { background: var(--bg-elev); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+.calc-prow { display: flex; align-items: center; gap: 12px; padding: 8px 14px; border-left: 5px solid transparent; }
+.calc-prow + .calc-prow { border-top: 1px solid var(--border); }
+.calc-prow.sl { border-left-color: var(--loss); }
+.calc-prow.en { border-left-color: var(--text-muted); }
+.calc-prow.tp { border-left-color: var(--target); }
+.calc-prow label { flex: 0 0 64px; font-weight: 600; font-size: 15px; }
+.calc-prow input { flex: 1; min-width: 0; font: 600 20px var(--font-num); font-variant-numeric: tabular-nums; color: var(--text); background: transparent; border: 0; padding: 6px 0; text-align: right; outline: none; }
+.calc-prow:focus-within { background: var(--bg-elev2); }
+.calc-dir { font-size: 13px; color: var(--text-muted); margin: 8px 2px 4px; min-height: 1.3em; }
+.calc-empty { color: var(--text-muted); text-align: center; padding: 26px 8px; }
+.calc-hero { text-align: center; padding: 14px 8px 12px; }
+.calc-lbl { color: var(--text-muted); font-size: 14px; }
+.calc-amt { font: 700 48px/1.1 var(--font-num); font-variant-numeric: tabular-nums; margin: 4px 0 8px; }
+.calc-amt small { font-size: 20px; font-weight: 600; color: var(--text-muted); margin-left: 8px; }
+.calc-copy { font-weight: 600; font-size: 14px; color: var(--text); background: var(--bg-elev); border: 1px solid var(--border); border-radius: 999px; padding: 8px 18px; }
+.calc-copy:hover { border-color: var(--accent); }
+.calc-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; margin-top: 8px; }
+.calc-stat { background: var(--bg-elev); padding: 10px 12px; min-width: 0; }
+.calc-k { color: var(--text-muted); font-size: 12px; }
+.calc-v { font: 600 17px var(--font-num); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.calc-v.neg, .calc-a.neg { color: var(--loss); }
+.calc-v.pos, .calc-a.pos { color: var(--win); }
+.calc-verdict { margin-top: 12px; border-radius: 14px; padding: 12px 14px; }
+.calc-verdict strong { display: block; font-size: 17px; }
+.calc-verdict span { font-size: 13px; color: var(--text); }
+.calc-verdict.ok { background: rgba(var(--win-rgb), 0.16); color: var(--win); }
+.calc-verdict.no { background: rgba(var(--loss-rgb), 0.16); color: var(--loss); }
+.calc-fees { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+.calc-fees:has(> :only-child) { grid-template-columns: 1fr; }
+.calc-fcol { background: var(--bg-elev); border: 1px solid var(--border); border-radius: 14px; padding: 10px 12px; min-width: 0; }
+.calc-fh { font-weight: 600; font-size: 14px; margin-bottom: 6px; padding-left: 8px; border-left: 4px solid var(--text-muted); }
+.calc-fh.sl { border-left-color: var(--loss); }
+.calc-fh.tp { border-left-color: var(--target); }
+.calc-fr { display: flex; justify-content: space-between; gap: 6px; font-size: 12.5px; color: var(--text-muted); padding: 2px 0; font-variant-numeric: tabular-nums; }
+.calc-fr b { font-weight: 600; color: var(--text); }
+.calc-ft { border-top: 1px solid var(--border); margin-top: 6px; padding-top: 6px; }
+.calc-a { display: block; font: 700 16px var(--font-num); font-variant-numeric: tabular-nums; }
+.calc-fnote { margin: 8px 2px 0; }
+.calc-details { margin-top: 16px; background: var(--bg-elev); border: 1px solid var(--border); border-radius: 14px; }
+.calc-details summary { cursor: pointer; padding: 12px 14px; font-weight: 600; list-style: none; }
+.calc-details summary::-webkit-details-marker { display: none; }
+.calc-details summary::after { content: "+"; float: right; color: var(--text-muted); }
+.calc-details[open] summary::after { content: "–"; }
+.calc-set { display: grid; grid-template-columns: 1fr auto; gap: 10px 12px; padding: 0 14px 14px; align-items: center; }
+.calc-set label { font-size: 14px; }
+.calc-set input { width: 110px; font: 600 15px var(--font-num); text-align: right; color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 7px 9px; }
+.calc-set input:focus { outline: none; border-color: var(--accent); }
+.calc-note { margin-top: 14px; }
+@media (max-width: 640px) { .calc-page { padding: 12px 14px 28px; } }
