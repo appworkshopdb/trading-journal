@@ -463,8 +463,14 @@ function renderTopbar() {
   applyTheme();
   const onCalendar = state.page === 'calendar';
   const onCalc = state.page === 'calc';
-  const pillText = onCalendar ? state.market : onCalc ? `${state.calcMarket} Rechner` : state.page === 'overview' ? 'Gesamtübersicht' : (state.analysisScope ? `Auswertungen · ${state.analysisScope}` : 'Auswertungen');
+  const pillText = onCalendar ? state.market : onCalc ? state.calcMarket : state.page === 'overview' ? 'Gesamtübersicht' : (state.analysisScope ? `Auswertungen · ${state.analysisScope}` : 'Auswertungen');
   const pillMarket = onCalendar ? state.market : onCalc ? state.calcMarket : state.page === 'analysis' ? state.analysisScope : null;
+  // Handy: Button „BTC Rechner“ / „GOLD Rechner“ direkt neben der Markt-Pille (ab 821 px steht „Rechner“ in der Kopfnavigation)
+  const calcMk = onCalc ? state.calcMarket : (pillMarket || state.market);
+  const calcBtn = $('btnCalcTop');
+  calcBtn.textContent = `${calcMk} Rechner`;
+  calcBtn.classList.toggle('active', onCalc);
+  calcBtn.onclick = () => actions.navigate({ page: 'calc', scope: calcMk });
   $('marketPill').replaceChildren(...(pillMarket ? [marketIcon(pillMarket, 16)] : []), pillText);
   document.querySelector('.period-nav').classList.toggle('hidden', !onCalendar);
   document.querySelector('.view-toggle').classList.toggle('hidden', !onCalendar);
