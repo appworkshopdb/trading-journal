@@ -18,6 +18,29 @@ let db; // Daten-Adapter (siehe js/data/index.js)
 // ---------------------------------------------------------------- Laden
 
 let loadingAll = false;
+const imageUrls = new Map(); // path -> { url, at }
+let lightbox = null; // { items, index } solange die Bild-Vollansicht offen ist
+
+/** Zeigt das aktuelle Bild der Vollansicht samt Zähler, Datum/Beschriftung und Pfeil-Zustand */
+async function showLightbox() {
+  const lb = $('lightbox');
+  const { items, index } = lightbox;
+  const it = items[index];
+  const img = lb.querySelector('img');
+  lb.classList.remove('hidden');
+  const meta = $('lbMeta');
+  meta.replaceChildren(el('b', null, it.title || ''), el('span', null, it.caption || ''));
+  $('lbCount').textContent = `${index + 1} / ${items.length}`;
+  $('lbPrev').disabled = index === 0;
+  $('lbNext').disabled = index === items.length - 1;
+  $('lbPrev').hidden = $('lbNext').hidden = items.length < 2;
+  try {
+    const url = await actions.imageUrl(it.path);
+    if (lightbox && lightbox.items[lightbox.index] === it) img.src = url; // nur anzeigen, wenn nicht inzwischen weitergeblättert
+  } catch { img.removeAttribute('src'); }
+  // nächstes/vorheriges Bild schon laden, damit das Blättern sofort geht
+  for (const n of [items[index + 1], items[index - 1]]) if (n) actions.imageUrl(n.path).then((u) => { new Image().src = u; }).catch(() => {});
+}
 
 async function ensureYear(year) {
   const key = String(year);
@@ -214,12 +237,26 @@ const actions = {
     await actions.updateDay(iso, { images: entry.images.filter((i) => i.id !== img.id) });
     setState({}, ['sidebar']);
   },
-  imageUrl: (path) => db.imageUrl(path),
-  openLightbox(src) {
-    if (!src) return;
-    $('lightbox').querySelector('img').src = src;
-    $('lightbox').classList.remove('hidden');
+  // Signierte URLs (Supabase, 1 h gültig) kurz zwischenspeichern, damit Blättern nicht jedes Mal nachfragt
+  imageUrl(path) {
+    const hit = imageUrls.get(path);
+    if (hit && Date.now() - hit.at < 45 * 60 * 1000) return Promise.resolve(hit.url);
+    return db.imageUrl(path).then((url) => { imageUrls.set(path, { url, at: Date.now() }); return url; });
   },
+  // Bild-Vollansicht mit Blättern: items = [{ path, caption, title }] (Reihenfolge der Liste, aus der geöffnet wurde), index = angezeigtes Bild
+  openLightbox(items, index = 0) {
+    if (!items?.length) return;
+    lightbox = { items, index: Math.min(Math.max(index, 0), items.length - 1) };
+    showLightbox();
+  },
+  stepLightbox(dir) {
+    if (!lightbox) return;
+    const i = lightbox.index + dir;
+    if (i < 0 || i >= lightbox.items.length) return;
+    lightbox.index = i;
+    showLightbox();
+  },
+  closeLightbox() { lightbox = null; $('lightbox').classList.add('hidden'); $('lightbox').querySelector('img').removeAttribute('src'); },
 
   // Notizen
   async newNote() {
@@ -537,9 +574,26 @@ function bindTopbar() {
   $('yearSelect').onchange = (e) => actions.setYear(Number(e.target.value));
   for (const b of document.querySelectorAll('.view-toggle button')) b.onclick = () => actions.setView(b.dataset.view);
   for (const b of document.querySelectorAll('#sideTabs button[data-tab]')) b.onclick = () => actions.setSideTab(b.dataset.tab);
-  $('lightbox').onclick = () => $('lightbox').classList.add('hidden');
+  // Bild-Vollansicht: Klick neben das Bild/auf × schließt, Buttons, Pfeiltasten und Wischen blättern
+  $('lightbox').onclick = (e) => { if (e.target === $('lightbox')) actions.closeLightbox(); };
+  $('lbClose').onclick = () => actions.closeLightbox();
+  $('lbPrev').onclick = () => actions.stepLightbox(-1);
+  $('lbNext').onclick = () => actions.stepLightbox(1);
+  let swipeX = null;
+  $('lightbox').addEventListener('touchstart', (e) => { swipeX = e.touches.length === 1 ? e.touches[0].clientX : null; }, { passive: true });
+  $('lightbox').addEventListener('touchend', (e) => {
+    if (swipeX == null) return;
+    const dx = e.changedTouches[0].clientX - swipeX; swipeX = null;
+    if (Math.abs(dx) > 50) actions.stepLightbox(dx < 0 ? 1 : -1);
+  }, { passive: true });
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') { $('lightbox').classList.add('hidden'); actions.closeMenu(); if (state.popupDate) actions.closePopup(); }
+    if (lightbox) { // bei offener Vollansicht gehören die Tasten ihr
+      if (e.key === 'Escape') actions.closeLightbox();
+      else if (e.key === 'ArrowLeft') actions.stepLightbox(-1);
+      else if (e.key === 'ArrowRight') actions.stepLightbox(1);
+      return;
+    }
+    if (e.key === 'Escape') { actions.closeMenu(); if (state.popupDate) actions.closePopup(); }
     if (state.page !== 'calendar' || state.popupDate || e.target.matches('input, textarea, select')) return;
     if (e.key === 'ArrowLeft') actions.step(-1);
     if (e.key === 'ArrowRight') actions.step(1);

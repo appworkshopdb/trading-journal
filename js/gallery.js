@@ -17,6 +17,13 @@ export function galleryPanel(state, actions) {
   if (!loaded) actions.loadAllImages(); // lädt alle Jahre nach und rendert die Seitenleiste danach neu
   const groups = entriesWithImages(state);
   const total = groups.reduce((n, [, e]) => n + e.images.length, 0);
+  // Reihenfolge für die Vollansicht = Reihenfolge in dieser Liste (alle Bilder, neueste zuerst)
+  const items = [];
+  for (const [key, e] of groups) {
+    const title = periodTitle(key, { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' });
+    for (const img of e.images) items.push({ path: img.path, caption: img.caption || '', title });
+  }
+  let n = 0;
 
   return h('div', { class: 'panel gallery-panel' },
     h('div', { class: 'panel-head' },
@@ -26,9 +33,10 @@ export function galleryPanel(state, actions) {
       ? groups.map(([key, e]) => h('section', { class: 'gallery-day' },
         h('h3', { class: 'gallery-date' }, periodTitle(key, { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' })),
         h('div', { class: 'gallery-grid' }, e.images.map((img) => {
+          const idx = n++;
           const el = loadedImg(img, actions);
           return h('figure', { class: 'gallery-item' },
-            h('button', { class: 'thumb-open', 'aria-label': 'Bild vergrößern', onClick: () => actions.openLightbox(el.src) }, el),
+            h('button', { class: 'thumb-open', 'aria-label': 'Bild vergrößern', onClick: () => actions.openLightbox(items, idx) }, el),
             img.caption && h('figcaption', { class: 'gallery-caption' }, img.caption));
         }))))
       : h('p', { class: 'muted' }, loaded ? 'Es gibt noch keine Bilder. Sie werden über „Öffnen" → „+ Bild hochladen" hinzugefügt.' : 'Bilder werden geladen …'),

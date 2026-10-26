@@ -1,7 +1,7 @@
 // Kalender: Monatsansicht (Wochenzeilen × 7 Tage) und Jahresansicht (4 × 3 Monate).
 // Reines Rendering – Datenzugriff und Navigation laufen über `actions` (siehe app.js).
 
-import { h, MONTHS, MONTHS_SHORT, WEEKDAYS, monthGrid, monthPrefix, fmtMoney, fmtCompact, signClass, periodStats, todayISO, escapeHtml, noteColor, dayEntriesOfMonth, monthTotal } from './utils.js';
+import { h, MONTHS, MONTHS_SHORT, WEEKDAYS, monthGrid, monthPrefix, fmtMoney, fmtCompact, signClass, periodStats, todayISO, escapeHtml, dayEntriesOfMonth, monthTotal, cellTint, hexRgb } from './utils.js';
 import { CONFIG } from '../config.js';
 
 export function renderCalendar(root, state, actions) {
@@ -11,13 +11,6 @@ export function renderCalendar(root, state, actions) {
 /** Alle Tageseinträge eines Monats aus dem Cache */
 function entriesOfMonth(state, y, m) {
   return dayEntriesOfMonth(state.days, monthPrefix(y, m));
-}
-
-/** Kleine Marken "Verpasst" / "Ausgesetzt", wenn der Tag solche Trades enthält */
-function flagChips(e) {
-  const st = e?.trades?.length ? e.trades.map((t) => t.status) : [];
-  const chips = [st.includes('missed') && ['missed', 'Verpasst'], st.includes('skipped') && ['skipped', 'Ausgesetzt']].filter(Boolean);
-  return chips.length ? h('span', { class: 'day-flags' }, chips.map(([k, label]) => h('span', { class: `day-flag ${k}` }, label))) : null;
 }
 
 function statTile(label, value, cls = '', sub = null) {
@@ -53,24 +46,22 @@ function monthView(state, actions) {
 
   const cells = grid.flat().map((c) => {
     const e = state.days[c.iso];
+    const tint = cellTint(e); // im Popup gewählte Farbe als Zellhintergrund; sonst automatisch nach Ergebnis
     const cls = ['day',
       !c.inMonth && 'outside',
       c.iso === today && 'today',
       c.iso === state.selectedDate && 'selected',
-      e?.pnl != null && (e.pnl > 0 ? 'win' : e.pnl < 0 ? 'loss' : 'flat'),
+      tint ? 'tinted' : e?.pnl != null && (e.pnl > 0 ? 'win' : e.pnl < 0 ? 'loss' : 'flat'),
     ].filter(Boolean).join(' ');
 
     // Die Zelle ist ein <div>: ein transparenter Button darüber öffnet das Popup, "Öffnen" den Detailbereich
     // (verschachtelte Buttons wären ungültiges HTML).
     const label = c.date.toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' });
-    return h('div', { class: cls, dataset: { date: c.iso } },
+    return h('div', { class: cls, dataset: { date: c.iso }, style: tint ? `--tint:${hexRgb(tint)}` : null },
       h('button', { class: 'day-hit', 'aria-label': `${label} bearbeiten`, onClick: () => actions.openPopup(c.iso) }),
       h('span', { class: 'day-num' }, c.date.getDate()),
-      e?.note?.trim() && h('div', { class: 'day-note', style: `--note:${noteColor(e.note_color).hex}` },
-        h('span', { class: 'day-note-text' }, e.note)),
       h('div', { class: 'day-foot' },
-        h('span', { class: 'day-pnl', title: e?.pnl != null ? fmtMoney(e.pnl, CONFIG.CURRENCY) : null }, e?.pnl != null ? fmtCompact(e.pnl) : ''),
-        flagChips(e),
+        h('span', { class: `day-pnl ${signClass(e?.pnl)}`, title: e?.pnl != null ? fmtMoney(e.pnl, CONFIG.CURRENCY) : null }, e?.pnl != null ? fmtCompact(e.pnl) : ''),
         c.inMonth && h('button', { class: 'day-open', title: 'Bilder und Auswertung öffnen', onClick: () => actions.openDetail(c.iso) }, 'Öffnen')),
     );
   });
@@ -98,17 +89,16 @@ function yearView(state, actions) {
     const total = monthTotal(state.days, key);
     monthSums.push(total ?? 0);
     const byDate = Object.fromEntries(entries.map((d) => [d.date, d]));
-    const cls = ['mini-month', key === state.selectedMonth && 'selected', total != null && (total > 0 ? 'win' : total < 0 ? 'loss' : 'flat')].filter(Boolean).join(' ');
+    const tint = cellTint(e); // gewählte Monatsfarbe als Hintergrund; sonst Rand nach Monatsergebnis
+    const cls = ['mini-month', key === state.selectedMonth && 'selected', tint ? 'tinted' : total != null && (total > 0 ? 'win' : total < 0 ? 'loss' : 'flat')].filter(Boolean).join(' ');
 
     // Wie die Tageszelle: <div> mit transparentem Button (Popup) + "Öffnen" (Detailbereich)
-    return h('div', { class: cls, dataset: { month: key } },
+    return h('div', { class: cls, dataset: { month: key }, style: tint ? `--tint:${hexRgb(tint)}` : null },
       h('button', { class: 'day-hit', 'aria-label': `${MONTHS[m]} ${y} bearbeiten`, onClick: () => actions.openPopup(key) }),
       h('div', { class: 'mini-head' },
         h('span', { class: 'mini-title', title: MONTHS[m] }, MONTHS_SHORT[m]),
         h('span', { class: `mini-sum ${signClass(total)}`, title: total != null ? fmtMoney(total, CONFIG.CURRENCY) : null }, total != null ? fmtCompact(total) : ''),
       ),
-      e?.note?.trim() && h('div', { class: 'day-note', style: `--note:${noteColor(e.note_color).hex}` },
-        h('span', { class: 'day-note-text' }, e.note)),
       h('div', { class: 'mini-grid' }, monthGrid(y, m).flat().map((c) => {
         const d = byDate[c.iso];
         const dcls = ['mini-day', !c.inMonth && 'outside', c.iso === today && 'today',

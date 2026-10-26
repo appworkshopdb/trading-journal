@@ -80,6 +80,7 @@ export function renderDayModal(root, state, actions) {
   // Eigene Dropdown-Liste, damit jede Farbe schon in der Liste sichtbar ist (ein <select> kann das nicht überall)
   let colorId = noteColor(entry?.note_color).id;
   let colorTouched = false; // sobald die Farbe selbst gewählt wurde, setzt die Automatik sie nicht mehr
+  let colorAuto = false;    // die aktuelle Farbe hat die Automatik gesetzt (dann darf sie sie auch wieder zurücknehmen)
   const dot = h('span', { class: 'color-dot' });
   const colorName = h('span', { class: 'color-name' });
   const trigger = h('button', { type: 'button', class: 'color-trigger', 'aria-haspopup': 'listbox', 'aria-expanded': 'false', 'aria-labelledby': 'noteColorLabel' },
@@ -99,7 +100,7 @@ export function renderDayModal(root, state, actions) {
     trigger.setAttribute('aria-expanded', String(open));
     if (open) options.find((o) => o.dataset.id === colorId)?.focus();
   };
-  const choose = (id) => { colorId = id; colorTouched = true; paintColor(); openList(false); trigger.focus(); };
+  const choose = (id) => { colorId = id; colorTouched = true; colorAuto = false; paintColor(); openList(false); trigger.focus(); };
   trigger.addEventListener('click', () => openList(list.classList.contains('hidden')));
   trigger.addEventListener('keydown', (ev) => { if (ev.key === 'ArrowDown') { ev.preventDefault(); openList(true); } });
   options.forEach((o, i) => {
@@ -124,7 +125,8 @@ export function renderDayModal(root, state, actions) {
     else if (taken.length && net < 0) id = 'rot';
     else if (rows.some((r) => r.status === 'missed')) id = 'gelb';
     else if (rows.some((r) => r.status === 'skipped')) id = 'grau';
-    if (id && id !== colorId) { colorId = id; paintColor(); }
+    if (id && id !== colorId) { colorId = id; colorAuto = true; paintColor(); }
+    else if (!id && colorAuto) { colorId = 'grau'; colorAuto = false; paintColor(); } // alle Beträge/Status entfernt -> wieder Standardfarbe
   };
   onTradeChange = autoColor;
 

@@ -21,6 +21,20 @@ export const NOTE_COLORS = [
 ];
 export const noteColor = (id) => NOTE_COLORS.find((c) => c.id === id) || NOTE_COLORS[NOTE_COLORS.length - 1];
 
+/** '#rrggbb' -> 'r, g, b' (für rgba(var(--tint), …)) */
+export const hexRgb = (hex) => { const n = parseInt(hex.slice(1), 16); return `${n >> 16}, ${(n >> 8) & 255}, ${n & 255}`; };
+
+/**
+ * Hintergrundfarbe einer Kalenderzelle (Tag oder Monat) = im Popup gewählte Notizfarbe; null = automatisch nach Ergebnis
+ * (Gewinn grün, Verlust rot). „Grau“ ist die Standardfarbe und gilt als nicht gewählt; nur ausgesetzte Trades färben grau.
+ */
+export function cellTint(e) {
+  if (!e) return null;
+  if (e.note_color && e.note_color !== 'grau') return noteColor(e.note_color).hex;
+  if (e.pnl == null && (e.trades || []).some((t) => t.status === 'skipped')) return noteColor('grau').hex;
+  return null;
+}
+
 export const pad2 = (n) => String(n).padStart(2, '0');
 
 /** Date -> 'YYYY-MM-DD' (lokale Zeit, keine UTC-Verschiebung) */

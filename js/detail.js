@@ -75,8 +75,11 @@ export function detailPanel(state, actions) {
   const fieldRow = (side, f) => {
     const label = h('input', { type: 'text', class: 'field-label', placeholder: 'Bezeichnung', 'aria-label': 'Bezeichnung des Felds', value: f.label || '',
       onInput: (ev) => { f.label = ev.target.value; saveTpl(); } });
-    const val = h('input', { type: 'text', class: 'field-val', 'aria-label': 'Wert', value: values[f.id] || '',
-      onInput: (ev) => { values[f.id] = ev.target.value; saveDebounced({ fields: values }); } });
+    // Mehrzeiliger Wert: bricht lange Texte um und wächst mit dem Inhalt (nichts wird abgeschnitten)
+    const val = h('textarea', { class: 'field-val', rows: 1, 'aria-label': 'Wert', spellcheck: false,
+      onInput: (ev) => { values[f.id] = ev.target.value; fitHeight(ev.target); saveDebounced({ fields: values }); } });
+    val.value = values[f.id] || '';
+    new ResizeObserver(() => fitHeight(val)).observe(val); // passt die Höhe an, sobald das Feld sichtbar ist bzw. sich die Breite ändert
     if (state.focusField === f.id) setTimeout(() => label.focus(), 0);
     // Löschen in zwei Schritten ohne Browser-Dialog: erster Tipp schärft den Button ("Löschen?"), zweiter Tipp entfernt das Feld
     // (das Feld verschwindet aus der Vorlage, also bei allen Einträgen dieser Ansicht)
@@ -112,17 +115,25 @@ export function detailPanel(state, actions) {
   );
 }
 
+/** Höhe einer Textarea an ihren Inhalt anpassen */
+function fitHeight(ta) {
+  ta.style.height = 'auto';
+  ta.style.height = ta.scrollHeight + 'px';
+}
+
 function imageGrid(entry, iso, actions, saveDebounced) {
   const imgs = entry.images || [];
   if (!imgs.length) return h('p', { class: 'muted small' }, 'Noch keine Bilder.');
-  return h('div', { class: 'image-grid' }, imgs.map((img) => {
+  const title = periodTitle(iso, { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' });
+  const items = imgs.map((i) => ({ path: i.path, caption: i.caption || '', title }));
+  return h('div', { class: 'image-grid' }, imgs.map((img, idx) => {
     const el = loadedImg(img, actions);
     // Optionale Beschriftung: direkt am Bildobjekt eintragen, Speichern entprellt
     const caption = h('input', { type: 'text', class: 'thumb-caption', placeholder: 'Beschriftung (optional)', 'aria-label': 'Bildbeschriftung', value: img.caption || '',
       onInput: (ev) => { img.caption = ev.target.value; saveDebounced({ images: entry.images }); } });
     return h('div', { class: 'thumb-card' },
       h('figure', { class: 'thumb' },
-        h('button', { class: 'thumb-open', onClick: () => actions.openLightbox(el.src) }, el),
+        h('button', { class: 'thumb-open', onClick: () => actions.openLightbox(items, idx) }, el),
         h('button', { class: 'thumb-del', title: 'Bild löschen', 'aria-label': 'Bild löschen', onClick: () => { if (confirm('Bild löschen?')) actions.removeImage(iso, img); } }, '×')),
       caption);
   }));
