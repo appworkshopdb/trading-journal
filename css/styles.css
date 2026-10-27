@@ -366,14 +366,17 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
 .field-cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 0; align-items: stretch; } /* zwei feste Spalten, durch eine Linie getrennt */
 .field-col { display: flex; flex-direction: column; gap: 0; min-width: 0; padding-right: 14px; }
 .field-col + .field-col { padding-right: 0; padding-left: 14px; border-left: 1px solid var(--text-muted); }
-/* Variante B "Liste": keine Kästen, nur eine dünne Trennlinie unter jedem Feld; links der Name (gedämpft), rechts der Text */
+/* Felder: dünne Trennlinie unter jedem Feld; links die Überschrift, rechts der Text */
 .field-row { display: flex; align-items: flex-start; min-width: 0; border-bottom: 1px solid var(--border); }
 .field-val, .field-label { background: transparent; border: 0; outline: none; min-width: 0; padding: 10px 2px; }
-/* Bezeichnung: klein und gedämpft, feine Linie zum Wert; am Handy steht sie über dem Wert (klein, GROSS, ohne Linie) */
-.field-label { flex: 0 0 36%; width: 36%; font-family: var(--font-num); font-size: 12px; font-weight: 700; color: var(--text-muted); border-right: 1px solid var(--border); padding-top: 12px; }
-.field-label::placeholder { color: var(--text-muted); opacity: 0.6; text-transform: none; letter-spacing: 0; font-weight: 400; }
-/* Wert: mehrzeilig, bricht lange Texte um */
-.field-val { flex: 1; color: var(--text); font-family: var(--font-num); font-size: 14px; line-height: 1.4; resize: none; overflow: hidden; white-space: pre-wrap; word-break: break-word; padding-left: 10px; }
+/* Überschrift (Vorlage für alle Tage): größer und fett, als kleines Eingabefeld hinterlegt – so ist sofort erkennbar, dass man sie ändern kann */
+.field-label { flex: 0 0 38%; width: 38%; box-sizing: border-box; font-family: var(--font); font-size: 15px; font-weight: 700; color: var(--text); text-overflow: ellipsis;
+  background: var(--bg-elev2); border: 1px solid transparent; border-radius: 6px; padding: 6px 8px; margin: 8px 8px 8px 0; cursor: text; }
+.field-label:hover { border-color: var(--border); }
+.field-label:focus { background: var(--bg); border-color: var(--accent); }
+.field-label::placeholder { color: var(--text-muted); opacity: 0.85; font-weight: 400; }
+/* Wert: mehrzeilig, bricht lange Texte um; eine Größe kleiner als die Überschrift */
+.field-val { flex: 1; color: var(--text); font-family: var(--font-num); font-size: 13px; line-height: 1.4; resize: none; overflow: hidden; white-space: pre-wrap; word-break: break-word; padding: 11px 2px 10px; }
 .field-del { align-self: flex-start; }
 .field-row:focus-within { border-bottom-color: var(--accent); }
 .field-col .dashed-btn { margin-top: 10px; }
@@ -441,8 +444,8 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
   .day-open { padding: 2px 5px; font-size: 10px; }
   /* Handy: Bezeichnung über dem Wert, damit zwei Spalten schmal noch lesbar bleiben */
   .field-row { flex-wrap: wrap; }
-  .field-label { width: 100%; flex: 0 0 100%; padding-bottom: 0; padding-top: 10px; border-right: 0; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; } /* Handy: Bezeichnung über dem Wert, klein und GROSS abgesetzt */
-  .field-val { width: 0; min-width: 0; padding: 3px 2px 10px; font-size: 13px; }
+  .field-label { width: 100%; flex: 0 0 100%; margin: 8px 0 0; font-size: 15px; } /* Handy: Überschrift über dem Wert (15 px), Wert kleiner (12 px) */
+  .field-val { width: 0; min-width: 0; padding: 6px 2px 10px; font-size: 12px; }
   .field-del { padding-top: 2px; }
 }
 
@@ -801,3 +804,12 @@ strong.ms-val { font-weight: 700; font-size: 18px; line-height: 1.2; }
 .day-pnl { overflow: visible; text-overflow: clip; }
 @media (max-width: 640px) { .day-pnl { font-size: 11px; letter-spacing: -0.02em; } }
 @media (max-width: 640px) { .field-del { padding-top: 4px; } }
+
+/* Felder: ist die Seitenleiste schmal (Laptop-Fenster, iPad hochkant), steht die Überschrift wie am Handy über dem Wert */
+.detail-fields { container-type: inline-size; }
+@container (max-width: 600px) {
+  .field-row { flex-wrap: wrap; }
+  .field-label { width: 100%; flex: 0 0 100%; margin: 8px 0 0; }
+  .field-val { width: 0; min-width: 0; padding: 6px 2px 10px; font-size: 12px; }
+  .field-del { padding-top: 4px; }
+}

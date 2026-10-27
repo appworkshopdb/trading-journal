@@ -73,7 +73,7 @@ export function detailPanel(state, actions) {
     onChange: async (ev) => { await actions.addImages(iso, [...ev.target.files]); ev.target.value = ''; } });
 
   const fieldRow = (side, f) => {
-    const label = h('input', { type: 'text', class: 'field-label', placeholder: 'Bezeichnung', 'aria-label': 'Bezeichnung des Felds', value: f.label || '',
+    const label = h('input', { type: 'text', class: 'field-label', placeholder: '✎ Überschrift', title: 'Überschrift ändern (gilt für alle Tage)', 'aria-label': 'Überschrift des Felds (gilt für alle Tage)', value: f.label || '',
       onInput: (ev) => { f.label = ev.target.value; saveTpl(); } });
     // Mehrzeiliger Wert: bricht lange Texte um und wächst mit dem Inhalt (nichts wird abgeschnitten)
     const val = h('textarea', { class: 'field-val', rows: 1, 'aria-label': 'Wert', spellcheck: false,
