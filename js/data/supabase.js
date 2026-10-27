@@ -34,12 +34,20 @@ export function createSupabaseAdapter(cfg) {
 
   const rowToMonth = (r) => ({ ...r, date: r.month, pnl: r.pnl == null ? null : Number(r.pnl), tags: [], images: r.images || [], fields: r.fields || {} });
 
+  // Die gespeicherte Sitzung enthält user_metadata (Feldvorlagen, Profilbild) nur im Stand der letzten Token-Erneuerung.
+  // Änderungen von einem anderen Gerät kommen so erst spät an -> Benutzer frisch vom Server holen (offline: gespeicherten Stand behalten).
+  let freshing = null;
+  const freshUser = () => freshing || (freshing = (async () => {
+    try { const { data } = await sb.auth.getUser(); if (data?.user) user = data.user; } catch { /* offline: Stand der Sitzung */ }
+  })().finally(() => { freshing = null; }));
+
   return {
     mode: 'supabase',
 
     async init() {
       const { data } = await sb.auth.getSession();
       user = data.session?.user ?? null;
+      await freshUser();
       return user;
     },
     onAuthChange(cb) {
@@ -68,6 +76,7 @@ export function createSupabaseAdapter(cfg) {
     // Vorlage der Auswertungsfelder liegt am Benutzerkonto (user_metadata) -> auf allen Geräten gleich, keine eigene Tabelle nötig
     // kind: 'day' (Tage) | 'month' (Monate, Jahresansicht) – getrennte Vorlagen
     async getFieldTemplate(kind = 'day') {
+      await freshUser();
       const t = user?.user_metadata?.[kind === 'month' ? 'field_template_month' : 'field_template'];
       return { left: t?.left || [], right: t?.right || [] };
     },

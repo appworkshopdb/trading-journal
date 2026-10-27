@@ -369,8 +369,8 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
 /* Variante B "Liste": keine Kästen, nur eine dünne Trennlinie unter jedem Feld; links der Name (gedämpft), rechts der Text */
 .field-row { display: flex; align-items: flex-start; min-width: 0; border-bottom: 1px solid var(--border); }
 .field-val, .field-label { background: transparent; border: 0; outline: none; min-width: 0; padding: 10px 2px; }
-/* Bezeichnung: klein und gedämpft, feine Linie zum Wert; am Handy steht sie über dem Wert (klein, GROSS, ohne Linie) */
-.field-label { flex: 0 0 36%; width: 36%; font-family: var(--font-num); font-size: 12px; font-weight: 700; color: var(--text-muted); border-right: 1px solid var(--border); padding-top: 12px; }
+/* Bezeichnung (Überschrift der Vorlage): eine Größe größer als der Wert, fett, Proportionalschrift; Desktop: feine Linie zum Wert, Handy: steht über dem Wert */
+.field-label { flex: 0 0 38%; width: 38%; font-family: var(--font); font-size: 15px; font-weight: 700; color: var(--text); text-overflow: ellipsis; border-right: 1px solid var(--border); padding-top: 11px; }
 .field-label::placeholder { color: var(--text-muted); opacity: 0.6; text-transform: none; letter-spacing: 0; font-weight: 400; }
 /* Wert: mehrzeilig, bricht lange Texte um */
 .field-val { flex: 1; color: var(--text); font-family: var(--font-num); font-size: 14px; line-height: 1.4; resize: none; overflow: hidden; white-space: pre-wrap; word-break: break-word; padding-left: 10px; }
@@ -441,7 +441,7 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
   .day-open { padding: 2px 5px; font-size: 10px; }
   /* Handy: Bezeichnung über dem Wert, damit zwei Spalten schmal noch lesbar bleiben */
   .field-row { flex-wrap: wrap; }
-  .field-label { width: 100%; flex: 0 0 100%; padding-bottom: 0; padding-top: 10px; border-right: 0; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; } /* Handy: Bezeichnung über dem Wert, klein und GROSS abgesetzt */
+  .field-label { width: 100%; flex: 0 0 100%; padding-bottom: 0; padding-top: 10px; border-right: 0; font-size: 15px; } /* Handy: Bezeichnung über dem Wert, eine Größe größer (15 px) als der Wert (13 px) */
   .field-val { width: 0; min-width: 0; padding: 3px 2px 10px; font-size: 13px; }
   .field-del { padding-top: 2px; }
 }

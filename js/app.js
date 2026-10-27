@@ -18,6 +18,7 @@ let db; // Daten-Adapter (siehe js/data/index.js)
 // ---------------------------------------------------------------- Laden
 
 let loadingAll = false;
+let templateSaving = 0; // laufende Speichervorgänge der Feldvorlage (dann kein Abgleich vom Server)
 const imageUrls = new Map(); // path -> { url, at }
 let lightbox = null; // { items, index } solange die Bild-Vollansicht offen ist
 
@@ -184,10 +185,21 @@ const actions = {
   async removeAvatar() {
     try { await persist(() => db.removeAvatar()); await refreshAvatar(true); } catch { /* s. o. */ }
   },
+  // App kommt in den Vordergrund (z. B. iPhone-Web-App wieder geöffnet): Feldvorlagen von anderen Geräten übernehmen
+  async refreshTemplates() {
+    if (templateSaving) return;
+    try {
+      const [day, month] = await Promise.all([db.getFieldTemplate('day'), db.getFieldTemplate('month')]);
+      if (templateSaving) return;
+      const same = JSON.stringify(day) === JSON.stringify(state.fieldTemplate) && JSON.stringify(month) === JSON.stringify(state.monthFieldTemplate);
+      if (!same) setState({ fieldTemplate: day, monthFieldTemplate: month }, ['sidebar']);
+    } catch { /* offline: bisherige Vorlage behalten */ }
+  },
   // Vorlage der Auswertungsfelder: je Ansicht eine eigene (kind 'day' = alle Tage, 'month' = alle Monate); nur Namen + Reihenfolge, die Werte stehen je Eintrag
   async saveFieldTemplate(tpl, kind = 'day') {
     state[kind === 'month' ? 'monthFieldTemplate' : 'fieldTemplate'] = tpl; // in place geändert, kein Re-Render (sonst verliert das Eingabefeld den Fokus)
-    await persist(() => db.saveFieldTemplate(tpl, kind));
+    templateSaving++;
+    try { await persist(() => db.saveFieldTemplate(tpl, kind)); } finally { templateSaving--; }
   },
   async changePassword(pw) { await persist(() => db.changePassword(pw)); },
   closeMenu() { if (state.menu) setState({ menu: null }, ['topbar']); },
@@ -586,6 +598,7 @@ function bindTopbar() {
     const dx = e.changedTouches[0].clientX - swipeX; swipeX = null;
     if (Math.abs(dx) > 50) actions.stepLightbox(dx < 0 ? 1 : -1);
   }, { passive: true });
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && state.user) actions.refreshTemplates(); });
   document.addEventListener('keydown', (e) => {
     if (lightbox) { // bei offener Vollansicht gehören die Tasten ihr
       if (e.key === 'Escape') actions.closeLightbox();
