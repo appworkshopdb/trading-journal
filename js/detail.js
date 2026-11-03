@@ -73,8 +73,12 @@ export function detailPanel(state, actions) {
     onChange: async (ev) => { await actions.addImages(iso, [...ev.target.files]); ev.target.value = ''; } });
 
   const fieldRow = (side, f) => {
-    const label = h('input', { type: 'text', class: 'field-label', placeholder: '✎ Überschrift', title: 'Überschrift ändern (gilt für alle Tage)', 'aria-label': 'Überschrift des Felds (gilt für alle Tage)', value: f.label || '',
-      onInput: (ev) => { f.label = ev.target.value; saveTpl(); } });
+    // Überschrift: mehrzeilig (bricht lange Titel um, wächst mit dem Inhalt); Enter beendet die Eingabe statt eine neue Zeile zu beginnen
+    const label = h('textarea', { class: 'field-label', rows: 1, spellcheck: false, placeholder: '✎ Überschrift', title: 'Überschrift ändern (gilt für alle Tage)', 'aria-label': 'Überschrift des Felds (gilt für alle Tage)',
+      onInput: (ev) => { f.label = ev.target.value; fitHeight(ev.target); saveTpl(); },
+      onKeydown: (ev) => { if (ev.key === 'Enter') { ev.preventDefault(); ev.target.blur(); } } });
+    label.value = f.label || '';
+    new ResizeObserver(() => fitHeight(label)).observe(label);
     // Mehrzeiliger Wert: bricht lange Texte um und wächst mit dem Inhalt (nichts wird abgeschnitten)
     const val = h('textarea', { class: 'field-val', rows: 1, 'aria-label': 'Wert', spellcheck: false,
       onInput: (ev) => { values[f.id] = ev.target.value; fitHeight(ev.target); saveDebounced({ fields: values }); } });
